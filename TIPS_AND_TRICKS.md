@@ -48,7 +48,9 @@ For a first playable game:
 Add multiplexing, multidirectional scrolling, packed sprite caches, and exact
 cycle effects when a measured need justifies their complexity. The current demo
 proves assembly and display; its permanently disabled IRQs, busy-wait delay, and
-assumed default display state are not yet a game engine.
+assumed default display state are not yet a game engine. See the newer
+[Nocturne](docs/NOCTURNE.md) and [Atlas](docs/ATLAS.md) implementations for explicit
+hardware ownership and measured rendering paths.
 
 ## Plan the budgets and memory map
 
@@ -437,7 +439,8 @@ automatically work with SD2IEC. [Öörni: loader documentation][loader]
 
 ## Build and debugging workflow
 
-This repository builds with `make all`; `make run` invokes VICE with RAM autostart.
+This repository builds Nocturne and Atlas with `make all`; `make run` launches
+Nocturne and `make run-atlas` launches Atlas, using VICE RAM autostart.
 The PRG loads at `$0801`; its BASIC `SYS 2061` stub enters `$080D`. Keep that stub,
 entry address, load header, and linker placement consistent as the program grows.
 

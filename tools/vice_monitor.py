@@ -355,6 +355,17 @@ class ViceMonitor:
             raise ValueError("checkpoint condition exceeds 255 bytes")
         self.request(0x22, struct.pack("<IB", number, len(encoded)) + encoded)
 
+    def joyport_set(self, port: int, value: int):
+        """Write a simulated joyport value (binary API command $a2).
+
+        Ports are zero based: 0 is physical port 1 and 1 is physical port 2.
+        VICE3.10 routes this command through joyport output; it does not create
+        host joystick input contacts. Do not use it as proof of input scanning.
+        """
+        if not (0 <= port <= 65535 and 0 <= value <= 65535):
+            raise ValueError("joyport fields must fit unsigned 16 bits")
+        self.request(0xA2, struct.pack("<HH", port, value))
+
     def palette_get(self, use_vic: bool = True) -> tuple[tuple[int, int, int], ...]:
         colors = []
         for item in _items(self.request(0x91, bytes([use_vic])).body):

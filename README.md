@@ -1,5 +1,33 @@
 # C64 experiments
 
+## Atlas: The Long March
+
+A procedural world of water, forests, deserts, mountains, winding rivers,
+cities, roads, and bridges. Move an army through the landscape; terrain changes
+travel speed and water blocks movement. The world is 65,536 × 65,536 tiles and
+wraps at its edges. Geography is generated on the C64 as needed, with no disk
+streaming or memory expansion.
+
+**Controls:** WASD or IJKL, C64 cursor keys, or a joystick in port 2. Space/fire
+cycles seven zoom levels (1, 4, 16, 64, 256, 1,024 and 4,096 tiles per displayed
+cell). Directions pan the overview while zoomed out; the army stays in place.
+Cycling back to the close view returns to the army. N generates a new world.
+
+![Atlas regional overview rendered by VICE](docs/atlas.png)
+
+Download the prebuilt [Atlas PRG](dist/atlas.prg) or [1541 disk image](dist/atlas.d64),
+or build and run with:
+
+```sh
+make atlas
+make run-atlas
+make atlas-disk       # build/atlas.d64
+make run-atlas-disk
+```
+
+See [Atlas design and hardware notes](docs/ATLAS.md) for terrain costs,
+procedural generation and compatibility results.
+
 ## Nocturne
 
 An original dance animation for a stock Commodore 64: a luminous ballet figure,

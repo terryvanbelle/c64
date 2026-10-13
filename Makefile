@@ -10,7 +10,7 @@ DANCE_OBJECTS := $(DANCE_DIR)/engine.o $(DANCE_DIR)/music.o
 DANCE_PRG := $(BUILD_DIR)/nocturne.prg
 
 .PHONY: all dance disk demo run run-disk run-demo clean
-all: dance
+all: dance atlas
 dance: $(DANCE_PRG)
 demo: $(BUILD_DIR)/demo.prg
 disk: $(BUILD_DIR)/nocturne.d64
@@ -56,6 +56,34 @@ $(BUILD_DIR)/demo.prg: $(BUILD_DIR)/demo.bin tools/make_prg.py
 
 run-demo: $(BUILD_DIR)/demo.prg
 	$(PYTHON) tools/run_vice.py --vice $(VICE) $(BUILD_DIR)/demo.prg
+
+.PHONY: atlas atlas-disk run-atlas run-atlas-disk
+atlas: $(BUILD_DIR)/atlas.prg
+atlas-disk: $(BUILD_DIR)/atlas.d64
+
+$(BUILD_DIR)/atlas:
+	mkdir -p $@
+
+$(BUILD_DIR)/atlas/assets.inc: tools/generate_atlas_assets.py | $(BUILD_DIR)/atlas
+	$(PYTHON) $<
+
+$(BUILD_DIR)/atlas/%.o: src/atlas/%.s $(BUILD_DIR)/atlas/assets.inc
+	$(CA65) -g -I $(BUILD_DIR)/atlas -l $(BUILD_DIR)/atlas/$*.lst -o $@ $<
+
+$(BUILD_DIR)/atlas/atlas.bin: $(BUILD_DIR)/atlas/engine.o $(BUILD_DIR)/atlas/world.o $(BUILD_DIR)/atlas/input.o $(BUILD_DIR)/atlas/cache.o atlas.cfg
+	$(LD65) -C atlas.cfg -m $(BUILD_DIR)/atlas/atlas.map -Ln $(BUILD_DIR)/atlas/atlas.lbl --dbgfile $(BUILD_DIR)/atlas/atlas.dbg -o $@ $(filter %.o,$^)
+
+$(BUILD_DIR)/atlas.prg: $(BUILD_DIR)/atlas/atlas.bin tools/make_prg.py
+	$(PYTHON) tools/make_prg.py $< $@
+
+$(BUILD_DIR)/atlas.d64: $(BUILD_DIR)/atlas.prg
+	$(C1541) -format 'ATLAS,02' d64 $@ -write $< atlas
+
+run-atlas: $(BUILD_DIR)/atlas.prg
+	$(PYTHON) tools/run_vice.py --vice $(VICE) $<
+
+run-atlas-disk: $(BUILD_DIR)/atlas.d64
+	$(PYTHON) tools/run_vice.py --vice $(VICE) $<
 
 clean:
 	rm -rf $(BUILD_DIR)

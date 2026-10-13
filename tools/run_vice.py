@@ -38,7 +38,7 @@ def main():
             parser.error("monitor port must be 1024..65535")
         command += ["-binarymonitor", "-binarymonitoraddress",
                     f"ip4://127.0.0.1:{args.monitor_port}", "-refreshonbreak"]
-    output = Path("build/dance").resolve()
+    output = (Path("build") / ("dance" if program.stem == "nocturne" else program.stem)).resolve()
     output.mkdir(parents=True, exist_ok=True)
     label = f"C64 {program.stem.title()} {args.model.upper()}"
     if sys.platform == "darwin":
