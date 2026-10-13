@@ -441,18 +441,19 @@ This repository builds with `make all`; `make run` invokes VICE with RAM autosta
 The PRG loads at `$0801`; its BASIC `SYS 2061` stub enters `$080D`. Keep that stub,
 entry address, load header, and linker placement consistent as the program grows.
 
-For a debug build, add ca65 `-g` and a listing (`-l`), and use ld65's map, VICE label,
-and debug outputs. Assert hardware alignment and capacity constraints in the
-source/configuration so asset growth fails during the build. These are documented
-tool options, not extra targets already present in the Makefile.
+The Nocturne build already uses ca65 `-g` and a listing (`-l`), plus ld65's map,
+VICE label and debug outputs under `build/dance/`. Use these outputs for each new
+project. Assert hardware alignment and capacity constraints in the
+source/configuration so asset growth fails during the build.
 [ca65][ca65], [ld65][ld65]
 
 Use `x64sc` for raster work; VICE describes its VIC-II emulation as cycle-based and
 pixel-accurate. Record the machine/SID model and input configuration with a bug
 report so another run reproduces the environment. [VICE emulator features][vice-features]
 
-The monitor can load ld65 labels using `ll "build/demo.lbl"` once that file is
-generated. Use execution breakpoints and store watchpoints to catch overwrites;
+The monitor can load Nocturne's ld65 labels using
+`ll "build/dance/nocturne.lbl"`. Use execution breakpoints and store watchpoints
+to catch overwrites;
 inspect raster/cycle positions and stopwatch timing around expensive routines.
 Toggle border colors around phases as a quick visual timing aid, then inspect the
 longest frame. Watchpoints themselves pause the machine, so distinguish debugging

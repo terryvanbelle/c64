@@ -1,28 +1,45 @@
-# C64 ca65 demo
+# C64 experiments
 
-This small C64 program prints three centered messages and animates the border
-through the C64 palette:
+## Nocturne
 
-- `C64 CLOUD BUILD`
-- `CA65 + VICE`
-- `LIVE ON YOUR MAC`
+An original dance animation for a stock Commodore 64: a luminous ballet figure,
+lavender and cyan curtains of light, twinkling motes, water glints, and a gentle
+three-voice SID score. It loops without text or user controls.
+
+The dancer has 96 original poses in eight expanded hires sprites. XOR/RLE frame
+compression, two sprite buffers, and a raster-driven scheduler keep animation,
+lighting, and music coordinated. PAL, common NTSC and old NTSC are detected at
+startup; simulation rate and SID pitch are adjusted separately.
+
+![Nocturne rendered by VICE](docs/nocturne.png)
 
 ## Build and run
 
-With Homebrew's `cc65` and VICE installed, run:
+With Python 3, `cc65` (ca65/ld65) and VICE installed:
 
 ```sh
-make
+make all
 make run
 ```
 
-The build uses `ca65` and `ld65`, then adds the PRG load-address header. The
-program has a BASIC `SYS 2061` stub at `$0801` and machine code at `$080D`.
-VICE's `-autostartprgmode 1` injects the PRG directly into RAM before BASIC
-starts the stub.
+The output is `build/nocturne.prg`. The build regenerates the original graphics
+using Python's standard library; it needs no downloaded art or Python packages.
+On macOS the launch helper supplies the native app context needed by GTK VICE.
+Generated launchers and emulator logs stay under `build/dance/`.
 
-To build without opening VICE, use `make all`. The resulting program is
-`build/demo.prg`.
+To create a standard 1541 disk image, run `make disk`; `make run-disk` exercises
+that image with true drive emulation and device-8 loading traps disabled.
+On a physical C64, transfer the PRG to a supported storage device, or write the
+generated D64 to a disk, then use `LOAD"NOCTURNE",8,1` followed by `RUN`.
+
+See [the implementation and hardware notes](docs/NOCTURNE.md) for the memory map,
+compatibility scope and verification record. Physical hardware testing remains
+to be done when a C64 is available.
+
+## Original proof of concept
+
+The earlier border-animation demo remains in `src/demo.s`. Build it with
+`make demo` and launch it with `make run-demo`.
 
 ## Game development reference
 
