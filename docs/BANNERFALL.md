@@ -1,7 +1,8 @@
 # Bannerfall
 
-A local two-player capture-the-flag game for a stock Commodore 64. Cyan and gold
-armies compete across a fresh procedural battlefield of forests, desert,
+A capture-the-flag game for a stock Commodore 64, with local two-player play
+and an optional computer opponent. Cyan and gold armies compete across a fresh
+procedural battlefield of forests, desert,
 mountains, water, river fords, cities, roads, and bridges.
 
 Bannerfall adapts Atlas's geography into a compact **20 × 10-tile arena**, with
@@ -12,10 +13,17 @@ equal for both sides.
 
 ## Start and controls
 
-On the title screen, press **K** for a shared keyboard or **J** for two joysticks.
-Both players press their fire controls when ready. **F1** generates a new field
-on the title or result screen. Release movement and fire controls before
-selecting a mode or generating a field.
+On the title or result screen, press **K** for keyboard controls or **J** for
+joysticks. Press **H** for two human players (the startup default) or **C** to
+make the gold army a computer opponent.
+
+In human mode, each player presses their fire control when ready. In computer
+mode, gold readies automatically; cyan presses fire to start. Player 1 uses the
+same keyboard controls or joystick **port 2** in both opponent modes. The
+opponent selection persists across rematches and new fields.
+
+**F1** generates a new field on the title or result screen. Release movement
+and fire controls before selecting a control/opponent mode or generating a field.
 
 | Action | Player 1: cyan | Player 2: gold |
 |---|---|---|
@@ -62,6 +70,27 @@ limit. The game polls held switches directly, without KERNAL key-repeat delays.
 
 The two armies move and fire before either projectile is evaluated. A shot
 survives its owner's defeat, so a simultaneous exchange can hit both players.
+
+### Computer opponent
+
+Press **C** on the title or result screen to play cyan against the computer's
+gold army. The computer submits directions and fire through the same normalized
+controls used by a human player. Both armies use the same movement, terrain,
+health, projectile, flag, and clock rules. Press **H** between matches to return
+gold to human control.
+
+The opponent recovers its own dropped flag or intercepts a human carrier first,
+returns a stolen enemy flag next, and otherwise raids the enemy base. A reverse
+breadth-first search expands at most four cells each tick; among equally short
+routes it favors roads and bridges. Legal approaches keep it moving while a
+route is being built. Interception plans refresh at a bounded rate as the human
+moves. Cardinal aiming checks mountains along the shot path and submits the
+ordinary fire control. It receives no extra speed, health, damage, or shield.
+
+The planner uses 600 bytes for distance, visit stamps, and a queue, plus 41 bytes
+of private state. Initialization clears only eight visit stamps per tick;
+ordinary replanning uses a generation stamp. Neither pathfinding nor aiming
+writes actor positions, terrain, game flags, scores, or timers.
 
 ### Terrain
 
@@ -168,9 +197,16 @@ On a physical C64, use ordinary `LOAD"BANNERFALL",8,1` followed by `RUN` from a
 supported storage device. The PRG contains all code, tables, and graphics in a
 single load. The D64 is a standard 1541 disk image.
 
-## Verification — 2026-10-13
+## Verification
 
-The final PRG is **25,345 bytes**, including its `$0801` load header. SHA-256:
+### Verified two-player baseline — 2026-10-13
+
+The following measurements describe the two-player release
+[`97ce2d7`](https://github.com/terryvanbelle/c64/commit/97ce2d7), before the computer
+opponent was added. They are retained as a baseline; they do not establish the
+timing or behavior of the computer-opponent revision.
+
+That release's PRG is **25,345 bytes**, including its `$0801` load header. SHA-256:
 
 `51385c99973bdd11704ab2cc1743c447ec61f8eae7e3caa9e63c1ee443a6f205`.
 
@@ -220,6 +256,51 @@ reflection, connected bases, and three connected bridge routes. Local reports,
 actual captures, and linker output are kept under `build/duel/`.
 
 **A physical C64 run remains pending until hardware is available.**
+
+### Computer-opponent revision — 2026-10-13
+
+The updated 25,345-byte PRG has SHA-256:
+
+`b906b580fb41f3a577ceba046605b5ee33bc89472c4423a777585732aa53680a`.
+
+Normal cold startup passes on PAL/6581, common NTSC/8580, and early NTSC/6581.
+A full PAL match with stationary human input, without repositioning either army,
+exercises 119 computer tile moves and three genuine captures; the computer wins
+after 1,010 simulation ticks. Separate common/early NTSC raids also steal and
+return a flag on their normally generated maps.
+
+Checks cover C/H selection with held-control guards, player-1-only solo start,
+ignored raw player-2 controls in CPU mode, pause freezing both actors and the
+planner, normal carrier slowdown, dropped-flag recovery, switching back to
+human-controlled gold, both-fire human start, and opponent persistence across
+fresh maps. An electrical menu model checks all 32,768 combinations of gameplay
+keys and F1/K/J/C/H; no phantom administrative action passes the released-control
+gate. Gameplay debug controls are still injected after real CIA polling; these
+checks do not claim physical joystick or host-keyboard validation.
+
+The updated D64 cold-boots on PAL/8580 with true 1541 emulation enabled and
+device-8 traps disabled. Loaded program bytes match the release exactly; its
+200 terrain cells and 800 glyph/color quadrants match the reference. The final
+emulator window is visible with the CPU option selected and player 1 unready.
+
+State now uses 1,014 bytes at `$0200–$05F5`, code ends at `$228E`, and declared
+zero page remains eight bytes. Independent 160-frame stress exercises combine
+four-node planning, long clear/blocked shot rays, both bullets, eight sprites,
+HUD redraws, solo starts/rematches, pause/resume, and generation-stamp wrap:
+
+| Model | Largest measured IRQ, cycles | Frame budget |
+|---|---:|---:|
+| PAL | 15,129 | 19,656 |
+| Common NTSC | 15,120 | 17,095 |
+| Early NTSC | 15,126 | 16,768 |
+
+Sprite publication finishes by raster 38 on PAL and 37 on either NTSC model,
+before the earliest flag at raster 60. No next-frame raster IRQ is pending at
+any measured return. The largest AI slice is 3,225 cycles; the four-node limit
+and eight-stamp clear limit hold. Local reports are under `build/duel/` as
+`*_ai_independent_timing.json`, `*_cpu_gameplay.json`, and `cpu_full_match.json`.
+
+**Physical C64 testing remains pending.**
 
 Source references and development guidance are collected in
 [TIPS_AND_TRICKS.md](../TIPS_AND_TRICKS.md).

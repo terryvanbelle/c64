@@ -9,10 +9,12 @@
 .import f_state, f_xlo, f_xhi, f_y, seconds_left, sudden_death
 .import duel_input_poll, duel_menu_poll, dual_controls, input_mode, menu_controls
 .import duel_sound_init, duel_sound_tick, duel_sound_silence
+.import ai_init, ai_tick
 .import __BSS_SIZE__, __CODE_RUN__, __CODE_SIZE__, __RODATA_RUN__, __RODATA_SIZE__
 .export start, irq, irq_done, main_loop, controls_sampled, duel_seed
 .export ticks, video_frames, video_standard, ready, new_arena_request
 .export frame_published, simulation_done
+.export computer_player2, ai_controls_ready
 
 SCREEN=$8000
 CHARSET=$8800
@@ -201,14 +203,18 @@ main_loop:
 prepare_arena:
     jsr arena_generate
     jsr game_init
+    jsr ai_init
     jsr render_arena
     lda #0
     sta ready
     sta ready+1
     sta new_arena_request
+    lda computer_player2
+    sta ready+1
     lda #$ff
     sta hud_state
     sta hud_mode
+    sta hud_opponent
     jsr hud_static
     jsr hud_dynamic
     lda #$1b
@@ -315,6 +321,10 @@ controls_sampled:
     lda game_state
     cmp #1
     bne :+
+    lda computer_player2
+    beq ai_controls_ready
+    jsr ai_tick
+ai_controls_ready:
     jsr game_tick
 :
 simulation_done:
@@ -346,9 +356,9 @@ handle_menu:
     cmp #4
     jeq @done
     cmp #1
-    beq @pause
+    jeq @pause
     cmp #3
-    beq @resume
+    jeq @resume
     ; Title/results only: choose input mode or a new arena with gameplay keys
     ; released. The control switches cannot ghost one another, but a chord
     ; such as D+X+N can electrically close the unmapped J mode-select path.
@@ -366,6 +376,20 @@ handle_menu:
     jmp duel_sound_silence
 :
     lda menu_pressed
+    and #32
+    beq :+
+    lda #1
+    sta computer_player2
+    jmp @mode
+:
+    lda menu_pressed
+    and #64
+    beq :+
+    lda #0
+    sta computer_player2
+    jmp @mode
+:
+    lda menu_pressed
     and #8
     beq :+
     lda #0
@@ -380,10 +404,15 @@ handle_menu:
 @mode:
     lda #0
     sta ready
+    lda computer_player2
     sta ready+1
     rts
 @ready:
     ldx #1
+    lda computer_player2
+    beq @player
+    sta ready+1
+    ldx #0
 @player:
     lda fire_pressed,x
     beq :+
@@ -396,6 +425,7 @@ handle_menu:
     and ready+1
     beq @done
     jsr game_start
+    jsr ai_init
     lda #0
     sta ready
     sta ready+1
@@ -797,12 +827,23 @@ hud_static:
     bne @change
     lda input_mode
     cmp hud_mode
+    bne @change
+    lda computer_player2
+    cmp hud_opponent
     jeq @done
 @change:
     lda game_state
     sta hud_state
     lda input_mode
     sta hud_mode
+    lda computer_player2
+    sta hud_opponent
+    beq :+
+    TEXT cpu_label_text,0,31
+    jmp @clear_bottom
+:
+    TEXT gold_text,0,31
+@clear_bottom:
     lda #32
     ldx #119
 @clear:
@@ -811,15 +852,25 @@ hud_static:
     bpl @clear
     lda input_mode
     bne @sticks
+    lda computer_player2
+    bne @cpu_keys
     TEXT keys_text,22,0
     jmp @state
+@cpu_keys:
+    TEXT cpu_keys_text,22,0
+    jmp @state
 @sticks:
+    lda computer_player2
+    bne @cpu_stick
     TEXT sticks_text,22,0
+    jmp @state
+@cpu_stick:
+    TEXT cpu_stick_text,22,0
 @state:
     lda game_state
-    beq @title
+    jeq @title
     cmp #2
-    beq @win
+    jeq @win
     cmp #3
     jeq @paused
     cmp #4
@@ -829,10 +880,15 @@ hud_static:
 @done:
     rts
 @title:
-    TEXT ready_text,23,0
+    TEXT menu_text,23,0
+    lda computer_player2
+    bne @cpu_title
     lda input_mode
     bne @joy_title
     TEXT key_legend_text,24,0
+    rts
+@cpu_title:
+    TEXT cpu_ready_text,24,0
     rts
 @joy_title:
     TEXT field_text,24,0
@@ -843,9 +899,19 @@ hud_static:
     TEXT cyan_win_text,23,0
     jmp @rematch
 @gold_win:
+    lda computer_player2
+    bne @cpu_win
     TEXT gold_win_text,23,0
+    jmp @rematch
+@cpu_win:
+    TEXT cpu_win_text,23,0
 @rematch:
+    lda computer_player2
+    bne @cpu_rematch
     TEXT rematch_text,24,0
+    rts
+@cpu_rematch:
+    TEXT cpu_rematch_text,24,0
     rts
 @paused:
     TEXT pause_text,23,0
@@ -893,6 +959,11 @@ hud_dynamic:
 @wait_cyan:
     TEXT wait_text,1,7
 @gold_ready:
+    lda computer_player2
+    beq :+
+    TEXT computer_short_text,1,24
+    jmp @clock
+:
     lda ready+1
     beq @wait_gold
     TEXT ready_short_text,1,24
@@ -997,18 +1068,25 @@ target_text: .byte "/3",0
 hp_text: .byte "HP:",0
 keys_text: .byte "CYAN:WASD FIRE:X  GOLD:UBNM FIRE:.",0
 sticks_text: .byte "CYAN:JOY PORT 2    GOLD:JOY PORT 1",0
-ready_text: .byte "BOTH FIRE:READY  K:KEYS J:JOYS F1:NEW",0
-key_legend_text: .byte "GOLD:U UP B LEFT N DOWN M RIGHT",0
-field_text: .byte "STEAL A FLAG. RETURN TO YOUR CASTLE.",0
+menu_text: .byte "K:KEYS J:JOYS C:CPU H:HUMAN F1:NEW",0
+key_legend_text: .byte "BOTH FIRE:START GOLD U/B/N/M=UP/L/D/R",0
+field_text: .byte "BOTH FIRE:START. STEAL FLAG, GET HOME.",0
+cpu_label_text: .byte "CPU ",0
+cpu_keys_text: .byte "CYAN:WASD FIRE:X    GOLD:COMPUTER",0
+cpu_stick_text: .byte "CYAN:JOY PORT 2     GOLD:COMPUTER",0
+cpu_ready_text: .byte "P1 FIRE:START. STEAL FLAG, GET HOME.",0
 objective_text: .byte "STEAL ENEMY FLAG. BRING IT HOME.",0
 home_rule_text: .byte "OWN FLAG HOME TO SCORE. RUN/STOP:PAUSE",0
 cyan_win_text: .byte "CYAN WINS THE FIELD!",0
 gold_win_text: .byte "GOLD WINS THE FIELD!",0
-rematch_text: .byte "BOTH FIRE:REMATCH  F1:NEW BATTLEFIELD",0
+rematch_text: .byte "BOTH FIRE:REMATCH C/H:CPU/HUMAN F1:NEW",0
+cpu_rematch_text: .byte "P1 FIRE:REMATCH C/H:CPU/HUMAN F1:NEW",0
+cpu_win_text: .byte "COMPUTER WINS THE FIELD!",0
 pause_text: .byte "BATTLE PAUSED",0
 unpause_text: .byte "RETURN OR RUN/STOP TO CONTINUE",0
 generating_text: .byte "FORMING A NEW BATTLEFIELD...",0
 ready_short_text: .byte "READY",0
+computer_short_text: .byte "CPU  ",0
 wait_text: .byte "WAIT ",0
 home_text: .byte "HOME ",0
 taken_text: .byte "TAKEN",0
@@ -1042,6 +1120,8 @@ controls_previous: .res 2
 fire_pressed: .res 2
 hud_state: .res 1
 hud_mode: .res 1
+hud_opponent: .res 1
+computer_player2: .res 1
 hud_clock: .res 1
 actor: .res 1
 sprite_enable: .res 1

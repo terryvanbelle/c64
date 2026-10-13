@@ -2,7 +2,8 @@
 
 ## Bannerfall
 
-A local two-player capture-the-flag game across a fresh procedural battlefield.
+A capture-the-flag game across a fresh procedural battlefield. Play locally
+against another person or command cyan against a computer-controlled gold army.
 Guide cyan and gold armies through forests, deserts, cities, fords, roads, and
 bridges. Mountains block movement and shots; fast roads reward bold raids,
 while slower river crossings offer flanking routes. Mirrored geography gives
@@ -15,7 +16,11 @@ carried flag, and a defeated army quickly respawns for another attempt.
 **Shared keyboard:** player 1 uses **WASD + X**; player 2 uses
 **U/B/N/M + period** (up/left/down/right + fire).
 **Two joysticks:** player 1 uses **port 2**, player 2 **port 1**.
-Choose **K** or **J** on the title screen, then both players press fire to ready.
+Choose **K** for keyboard or **J** for joysticks on the title or result screen.
+**H** selects two humans (the default); **C** selects the computer opponent.
+Two human players each press fire to ready. The computer readies automatically,
+so player 1 presses fire to start a solo match. Player 1 uses joystick port 2
+in either opponent mode. Opponent choice persists across new fields and rematches.
 Release gameplay controls to choose a mode or use **F1** for a new field.
 **RUN/STOP** pauses (**Escape** in macOS VICE); **Return** also pauses in
 keyboard mode.

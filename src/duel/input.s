@@ -10,7 +10,10 @@
 ;   menu_controls = Return or RUN/STOP $01 during keyboard play; RUN/STOP $01
 ;     during joystick play. The game uses this bit for start/pause/resume/replay.
 ;   duel_menu_poll scans the title/results keyboard regardless of input_mode:
-;     Return or RUN/STOP $01, F1 $02, K $08, J $10. Returns menu_controls in A.
+;     Return or RUN/STOP $01, F1 $02, K $08, J $10, C $20, H $40.
+;     C selects a computer gold army; H selects a human gold army.
+;     Returns menu_controls in A. The engine accepts F1/K/J/C/H only with
+;     gameplay controls released, because their matrix paths may ghost.
 ;     It leaves the previous dual_controls unchanged; use duel_input_poll to
 ;     sample fire when a joystick-driven menu should accept fire as well. Save
 ;     the returned menu byte before duel_input_poll, which replaces it with
@@ -65,6 +68,8 @@ MENU_START    = $01
 MENU_NEW      = $02
 MENU_KEYBOARD = $08
 MENU_JOYSTICK = $10
+MENU_COMPUTER = $20
+MENU_HUMAN    = $40
 
 .segment "BSS"
 dual_controls:  .res 2
@@ -199,6 +204,8 @@ keyboard:
     jsr decode_common_menu
     ADD_KEY 4, $20, menu_controls, MENU_KEYBOARD  ; K
     ADD_KEY 4, $04, menu_controls, MENU_JOYSTICK  ; J
+    ADD_KEY 2, $10, menu_controls, MENU_COMPUTER  ; C
+    ADD_KEY 3, $20, menu_controls, MENU_HUMAN     ; H
     lda menu_controls
     rts
 .endproc

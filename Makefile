@@ -98,7 +98,7 @@ $(BUILD_DIR)/duel/assets.inc: tools/generate_duel_assets.py tools/generate_atlas
 $(BUILD_DIR)/duel/%.o: src/duel/%.s $(BUILD_DIR)/duel/assets.inc
 	$(CA65) -g -I $(BUILD_DIR)/duel -l $(BUILD_DIR)/duel/$*.lst -o $@ $<
 
-$(BUILD_DIR)/duel/bannerfall.bin: $(BUILD_DIR)/duel/engine.o $(BUILD_DIR)/duel/game.o $(BUILD_DIR)/duel/arena.o $(BUILD_DIR)/duel/input.o $(BUILD_DIR)/duel/sound.o duel.cfg
+$(BUILD_DIR)/duel/bannerfall.bin: $(BUILD_DIR)/duel/engine.o $(BUILD_DIR)/duel/game.o $(BUILD_DIR)/duel/arena.o $(BUILD_DIR)/duel/input.o $(BUILD_DIR)/duel/sound.o $(BUILD_DIR)/duel/ai.o duel.cfg
 	$(LD65) -C duel.cfg -m $(BUILD_DIR)/duel/bannerfall.map -Ln $(BUILD_DIR)/duel/bannerfall.lbl --dbgfile $(BUILD_DIR)/duel/bannerfall.dbg -o $@ $(filter %.o,$^)
 
 $(BUILD_DIR)/bannerfall.prg: $(BUILD_DIR)/duel/bannerfall.bin tools/make_prg.py
