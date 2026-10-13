@@ -269,6 +269,13 @@ and preparation. Let bounded IRQ work commit display changes and meet audio
 deadlines. Use a byte-sized publication flag/index or a protected pointer swap so
 the IRQ never consumes half a new display list. Keep separate scratch state.
 
+A small fixed arena can instead put its entire bounded simulation in the raster
+IRQ, with main used only for paused generation. Publish completed sprite state
+before running the next simulation, and measure input, collisions, sound, HUD
+changes, and VIC DMA together on every target model. Bannerfall uses this scheme
+for two players and two bullets; its measured budgets are in
+[the game notes](docs/BANNERFALL.md). This is a project-specific measured choice.
+
 If preparation overruns, retain a coherent previous display state and count the
 missed deadline. Lower-rate simulation with interpolated rendering is an option;
 measure responsiveness before adopting it. Öörni reports that four-frame
@@ -368,6 +375,19 @@ Port 2 is a useful single-player default, but both ports share CIA1 lines with t
 keyboard matrix. Test keyboard/joystick combinations and held directions. Custom
 scanning and joystick reads must agree on latch/DDR state. [Firsthand keyboard
 wiring investigation][keyboard]
+
+For shared-keyboard play, choose all controls together using their actual matrix
+coordinates. A set of switches forming an acyclic row/column graph cannot create
+a phantom **mapped gameplay control** from other gameplay switches. Bannerfall's
+WASD/X and UBNM/period layout uses this property. Audit menu keys too: a phantom
+J can still appear outside that gameplay set. Bannerfall accepts mode/new-field
+keys only with gameplay controls released. The electrical model does not prove
+the rollover limits of a host keyboard used with an emulator. [Matrix wiring][keyboard]
+
+When taking complete CIA1 ownership, disable timer outputs on PB6/PB7 (CRA/CRB
+PBON) before relying on input DDRs. Drive only selected **low** column pins during
+scans so a held joystick cannot oppose a driven-high CIA pin; restore the agreed
+input/latch state afterwards. [MOS 6526 port and timer behavior][cia]
 
 A DDR bit value of 0 selects input; 1 selects output. CIA reads report pin levels
 even for outputs, rather than the written output latch. Preserve intended latch

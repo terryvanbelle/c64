@@ -1,5 +1,40 @@
 # C64 experiments
 
+## Bannerfall
+
+A local two-player capture-the-flag game across a fresh procedural battlefield.
+Guide cyan and gold armies through forests, deserts, cities, fords, roads, and
+bridges. Mountains block movement and shots; fast roads reward bold raids,
+while slower river crossings offer flanking routes. Mirrored geography gives
+both players equal starting terrain.
+
+Steal the enemy flag and bring it home while your own flag is safe. First to
+three captures wins; a tied 2:30 match enters sudden death. Any hit drops a
+carried flag, and a defeated army quickly respawns for another attempt.
+
+**Shared keyboard:** player 1 uses **WASD + X**; player 2 uses
+**U/B/N/M + period** (up/left/down/right + fire).
+**Two joysticks:** player 1 uses **port 2**, player 2 **port 1**.
+Choose **K** or **J** on the title screen, then both players press fire to ready.
+Release gameplay controls to choose a mode or use **F1** for a new field.
+**RUN/STOP** pauses (**Escape** in macOS VICE); **Return** also pauses in
+keyboard mode.
+
+![Bannerfall rendered by VICE](docs/bannerfall.png)
+
+Download the prebuilt [Bannerfall PRG](dist/bannerfall.prg) or
+[1541 disk image](dist/bannerfall.d64), or build and run with:
+
+```sh
+make duel
+make run-duel
+make duel-disk        # build/bannerfall.d64
+make run-duel-disk
+```
+
+See [Bannerfall rules and hardware notes](docs/BANNERFALL.md) for movement costs,
+controls, generation, audio, and compatibility status.
+
 ## Atlas: The Long March
 
 A procedural world of water, forests, deserts, mountains, winding rivers,
@@ -52,7 +87,8 @@ make all
 make run
 ```
 
-The output is `build/nocturne.prg`. The build regenerates the original graphics
+`make all` builds Bannerfall, Atlas, and Nocturne; `make run` launches Nocturne.
+The Nocturne output is `build/nocturne.prg`. The build regenerates the original graphics
 using Python's standard library; it needs no downloaded art or Python packages.
 On macOS the launch helper supplies the native app context needed by GTK VICE.
 Generated launchers and emulator logs stay under `build/dance/`.

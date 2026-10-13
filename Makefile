@@ -10,7 +10,7 @@ DANCE_OBJECTS := $(DANCE_DIR)/engine.o $(DANCE_DIR)/music.o
 DANCE_PRG := $(BUILD_DIR)/nocturne.prg
 
 .PHONY: all dance disk demo run run-disk run-demo clean
-all: dance atlas
+all: dance atlas duel
 dance: $(DANCE_PRG)
 demo: $(BUILD_DIR)/demo.prg
 disk: $(BUILD_DIR)/nocturne.d64
@@ -83,6 +83,34 @@ run-atlas: $(BUILD_DIR)/atlas.prg
 	$(PYTHON) tools/run_vice.py --vice $(VICE) $<
 
 run-atlas-disk: $(BUILD_DIR)/atlas.d64
+	$(PYTHON) tools/run_vice.py --vice $(VICE) $<
+
+.PHONY: duel duel-disk run-duel run-duel-disk
+duel: $(BUILD_DIR)/bannerfall.prg
+duel-disk: $(BUILD_DIR)/bannerfall.d64
+
+$(BUILD_DIR)/duel:
+	mkdir -p $@
+
+$(BUILD_DIR)/duel/assets.inc: tools/generate_duel_assets.py tools/generate_atlas_assets.py | $(BUILD_DIR)/duel
+	$(PYTHON) tools/generate_duel_assets.py
+
+$(BUILD_DIR)/duel/%.o: src/duel/%.s $(BUILD_DIR)/duel/assets.inc
+	$(CA65) -g -I $(BUILD_DIR)/duel -l $(BUILD_DIR)/duel/$*.lst -o $@ $<
+
+$(BUILD_DIR)/duel/bannerfall.bin: $(BUILD_DIR)/duel/engine.o $(BUILD_DIR)/duel/game.o $(BUILD_DIR)/duel/arena.o $(BUILD_DIR)/duel/input.o $(BUILD_DIR)/duel/sound.o duel.cfg
+	$(LD65) -C duel.cfg -m $(BUILD_DIR)/duel/bannerfall.map -Ln $(BUILD_DIR)/duel/bannerfall.lbl --dbgfile $(BUILD_DIR)/duel/bannerfall.dbg -o $@ $(filter %.o,$^)
+
+$(BUILD_DIR)/bannerfall.prg: $(BUILD_DIR)/duel/bannerfall.bin tools/make_prg.py
+	$(PYTHON) tools/make_prg.py $< $@
+
+$(BUILD_DIR)/bannerfall.d64: $(BUILD_DIR)/bannerfall.prg
+	$(C1541) -format 'BANNERFALL,03' d64 $@ -write $< bannerfall
+
+run-duel: $(BUILD_DIR)/bannerfall.prg
+	$(PYTHON) tools/run_vice.py --vice $(VICE) $<
+
+run-duel-disk: $(BUILD_DIR)/bannerfall.d64
 	$(PYTHON) tools/run_vice.py --vice $(VICE) $<
 
 clean:
