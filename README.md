@@ -15,6 +15,8 @@ startup; simulation rate and SID pitch are adjusted separately.
 
 ## Build and run
 
+Download the prebuilt [Nocturne PRG](dist/nocturne.prg) to run it without building.
+
 With Python 3, `cc65` (ca65/ld65) and VICE installed:
 
 ```sh
