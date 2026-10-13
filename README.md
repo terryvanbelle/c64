@@ -23,3 +23,8 @@ starts the stub.
 
 To build without opening VICE, use `make all`. The resulting program is
 `build/demo.prg`.
+
+## Game development reference
+
+See [TIPS_AND_TRICKS.md](TIPS_AND_TRICKS.md) for researched guidance on C64
+graphics, memory, interrupts, game architecture, input, audio, and debugging.
