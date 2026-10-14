@@ -434,7 +434,7 @@ def draw_title(glyphs):
         art(a, (40-len(word)*2)//2, row,
             lambda col, rr: 7 if rr in (2, 4) else 8)
 
-    # Hero image: a frozen armillary motion-spool, four satellite pearls,
+    # Hero image: a frozen armillary archive heart, four satellite pearls,
     # symmetric engraved supports, and a bright core held in suspension.
     a = canvas(96, 80)
     # Nested diamonds and an elliptical orbital belt establish a clear shape.
@@ -453,7 +453,7 @@ def draw_title(glyphs):
     ellipse(a, 49, 36, 5, 5, 0, fill=True)
     dot(a, 46, 31)
     dot(a, 45, 30)
-    # Paired spool crowns and a tiered plinth.
+    # Paired crowns of the archive heart and a tiered plinth.
     line(a, 43, 2, 51, 2)
     line(a, 41, 4, 53, 4)
     line(a, 43, 64, 51, 64)

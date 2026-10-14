@@ -2,18 +2,21 @@
 ; Main-thread ABI; A/X/flags clobbered, Y preserved, no zero page or KERNAL.
 ; input_init owns CIA1 ports, disables timer PB6/PB7 output and primes edges.
 ; input_poll returns held input in A; exports held and newly pressed bytes.
-; Controls: W/up=1, S/down=2, A/left=4, D/right=8, Space/fire=16.
+; Controls: W/up step=1, S/down undo=2, A/left=4, D/right=8, Space/fire=16.
 ; Menu: Return=1, R=2, H=4, RUN/STOP (VICE Escape)=8, M=16, Q=32.
 ; Both real cursor keys work; either Shift reverses their direction.
-; Opposing directions cancel. Menus require raw controls released: WASD chords
-; can otherwise ghost R through the physical keyboard matrix.
+; Opposing directions cancel. Most menus require raw controls released.
+; R also works with one other keyboard key: at most two sensed keys cannot
+; form a ghost rectangle. Larger chords remain blocked (W+A+D ghosts R).
 ; Both ports finish as inputs with $FF latches. Selected keyboard columns only
 ; drive LOW, so a joystick contact never opposes a driven-high CIA output.
 ; Port-1 grounded rows are excluded before keyboard decoding. Mixed keyboard /
 ; joystick chords cannot all be distinguished by stock C64 hardware.
-; CIA1 ports must not be accessed concurrently. BSS: 16 bytes, initialized here.
+; CIA1 ports must not be accessed concurrently. BSS: 18 bytes; scratch is set
+; before use and input_init primes the key history.
 .setcpu "6502"
 .export input_init,input_poll,input_controls,input_pressed,menu_keys,menu_pressed
+.export raw_controls
 
 PA=$dc00
 PB=$dc01
@@ -30,6 +33,8 @@ previous_menu: .res 1
 input_baseline: .res 1
 input_matrix: .res 8
 raw_controls: .res 1
+restart_key_count: .res 1
+restart_key_bits: .res 1
 
 .segment "RODATA"
 input_columns: .byte $fe,$fd,$fb,$f7,$ef,$df,$bf,$7f
@@ -129,13 +134,38 @@ horizontal:
     sta input_controls
 menus:
     lda raw_controls
-    bne edges
+    bne restart_chord
     KEY 0,$02,menu_keys,1
     KEY 2,$02,menu_keys,2
     KEY 3,$20,menu_keys,4
     KEY 7,$80,menu_keys,8
     KEY 4,$10,menu_keys,16
     KEY 7,$40,menu_keys,32
+    jmp edges
+restart_chord:
+    lda input_matrix+2
+    and #$02
+    beq edges                   ; R is not sensed.
+    lda #0
+    sta restart_key_count
+    ldx #7
+count_column:
+    lda input_matrix,x
+    sta restart_key_bits
+count_bit:
+    lsr restart_key_bits
+    bcc next_bit
+    inc restart_key_count
+    lda restart_key_count
+    cmp #3
+    bcs edges                   ; Reject ambiguous multi-key rectangles.
+next_bit:
+    lda restart_key_bits
+    bne count_bit
+    dex
+    bpl count_column
+    lda #2
+    sta menu_keys
 edges:
     lda previous_controls
     eor #$ff

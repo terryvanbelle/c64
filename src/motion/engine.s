@@ -1,13 +1,14 @@
 ; BORROWED MOTION -- an original solo game for a stock Commodore 64.
-; A movement is an object: exchange it with a vessel, then deliberately wind
-; time. Stationary pearls settle in empty cradles. No real-time deadline.
+; A movement is an object: exchange it with a vessel, then step time forward.
+; Stationary pearls settle in empty cradles. No real-time deadline.
 ;
 ; Main owns gameplay, input, graphics and SID. Raster IRQ only schedules a
 ; nominal 50 Hz tick. All animation is presentation; the two microsteps of a
 ; fast movement are shown separately, including bends and rebounds.
 .setcpu "6502"
 .macpack longbranch
-.import input_init,input_poll,input_controls,input_pressed,menu_pressed
+.import input_init,input_poll,input_controls,input_pressed,menu_keys,menu_pressed
+.import raw_controls
 .import sound_init,sound_tick,sound_event,sound_silence,sound_enabled
 .export start,irq,main_loop,controls_sampled,tick_done,video_standard,video_frames
 .export scene,room_index,unlocked,selected,pocket,settled,swaps,wind_count
@@ -59,6 +60,7 @@ select_repeat: .res 1
 undo_repeat: .res 1
 controls_buffer: .res 1
 clear_age: .res 1
+restart_wait: .res 1
 actor_count: .res 1
 actor_type: .res ACTORS
 pearl_count: .res 1
@@ -296,6 +298,16 @@ tick_done:
     jmp main_loop
 
 .proc game_tick
+    ; A held step/selection key must not immediately change a restarted room.
+    lda restart_wait
+    beq @ready
+    lda raw_controls
+    ora menu_keys
+    bne @wait
+    sta restart_wait
+@wait:
+    rts
+@ready:
     lda menu_pressed
     and #16
     beq :+
@@ -303,6 +315,24 @@ tick_done:
     eor #1
     sta sound_enabled
 :
+    lda menu_pressed
+    and #2
+    beq @not_restart
+    lda scene
+    cmp #2
+    bne @restart_scene
+    lda help_return             ; R in in-game help restarts the underlying room.
+@restart_scene:
+    cmp #1
+    beq @restart
+    cmp #3
+    bne @not_restart
+@restart:
+    jsr load_room
+    lda #1
+    sta restart_wait
+    rts
+@not_restart:
     lda scene
     cmp #2
     jeq help_tick
@@ -321,11 +351,6 @@ tick_done:
     and #8
     beq :+
     jmp show_title
-:
-    lda menu_pressed
-    and #2
-    beq :+
-    jmp load_room
 :
     lda scene
     cmp #3
@@ -551,6 +576,7 @@ tick_done:
     sta micro_phase
     sta fx_life
     sta clear_age
+    sta restart_wait
     sta pearl_count
     sta goal_count
     ldx #STATE_SIZE-1
@@ -737,7 +763,7 @@ tick_done:
 .endproc
 
 .proc wind_begin
-    ; Winding an entirely still room changes nothing and must not consume undo.
+    ; Stepping an entirely still room changes nothing and must not consume undo.
     ldx #ACTORS-1
 @moving:
     lda actor_active,x
@@ -1888,34 +1914,34 @@ lesson_choose_pearl: .byte "A/D: CHOOSE THE PEARL TO GUIDE IT.    ",0
 help_touch: .byte "OBJECTS PASS THROUGH EACH OTHER.      ",0
 pearl_label: .byte "PEARL",0
 bell_label: .byte "BELL ",0
-controls_line: .byte "A/D PICK  SPACE SWAP  TAP/HOLD W WIND ",0
+controls_line: .byte "A/D PICK  SPACE SWAP  TAP/HOLD W STEP ",0
 tools_line: .byte "S UNDO  R RESTART  H HELP  M SOUND    ",0
 restored_line: .byte "ALL PEARLS REST. SPACE TO CONTINUE.   ",0
 clear_controls: .byte "SPACE / RETURN / FIRE: NEXT ROOM      ",0
 clear_tools: .byte "S/DOWN: UNDO  R: REPLAY  H: HELP      ",0
 lesson_take: .byte "SPACE: TAKE THE BELL'S MOTION.        ",0
 lesson_give: .byte "SPACE: LEND THE MOTION TO THE PEARL.  ",0
-lesson_wind: .byte "TAP W: ONE BEAT. HOLD W: KEEP GOING.  ",0
+lesson_wind: .byte "TAP W: ONE STEP. HOLD: KEEP STEPPING. ",0
 lesson_brake: .byte "SPACE: TAKE MOTION. THE PEARL RESTS.  ",0
 title_controls: .byte "A/D: SELECT    SPACE/FIRE: EXCHANGE",0
-title_time: .byte "TAP W: ONE BEAT   HOLD W: WIND MORE",0
+title_time: .byte "TAP W: ONE STEP  HOLD: KEEP STEPPING",0
 title_start: .byte "RETURN / FIRE: BEGIN   H: HELP",0
-title_extra: .byte "JOYSTICK 2: L/R SELECT  UP WIND",0
+title_extra: .byte "JOYSTICK 2: L/R SELECT  UP STEP",0
 title_room: .byte "NO.",0
 help_a: .byte "YOU CAN BORROW THE WAY THINGS MOVE.   ",0
 help_b: .byte "GUIDE EVERY PEARL INTO A GOLDEN NEST. ",0
 help_c: .byte "A/D OR LEFT/RIGHT: SELECT AN OBJECT.  ",0
 help_d: .byte "SPACE/FIRE: SWAP ITS MOTION WITH YOUR ",0
 help_e: .byte "POCKET. AN EMPTY POCKET STOPS IT.     ",0
-help_f: .byte "TAP W/UP: ONE BEAT. HOLD: WIND MORE.  ",0
+help_f: .byte "TAP W/UP: ONE STEP. HOLD: STEP MORE. ",0
 help_g: .byte "RELEASE TO THINK. ALL OBJECTS WAIT.   ",0
 help_h: .byte "ON A NEST, TAKE A PEARL'S MOTION.     ",0
 help_i: .byte "IT MUST BE STILL TO SETTLE THERE.     ",0
 help_j: .byte "MIRRORS TURN. WALLS REVERSE MOTION.   ",0
-help_k: .byte "GLASS SLOWS. ARROW+2: TWO TILES/BEAT. ",0
+help_k: .byte "GLASS SLOWS. ARROW+2: TWO TILES/STEP. ",0
 help_l: .byte "S/DOWN UNDO   R RESTART   M SOUND     ",0
 help_m: .byte "RUN/STOP: TITLE. H: THIS GUIDE.       ",0
-help_n: .byte "PURPLE GHOST: SELECTED NEXT BEAT.     ",0
+help_n: .byte "PURPLE GHOST: SELECTED NEXT STEP.     ",0
 help_close: .byte "SPACE / FIRE / RETURN / H: BACK       ",0
 ending_a: .byte "THE ARCHIVE IS AWAKE.",0
 ending_b: .byte "TEN ROOMS. EVERY PEARL HOME AT LAST.",0

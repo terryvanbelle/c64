@@ -19,13 +19,14 @@ when the world advances and have unlimited time to think.
 ![Borrowed Motion opening screen in VICE](docs/borrowed-motion-title.png)
 
 **A/D** selects an artifact; **Space** exchanges its motion with your pocket.
-**Tap W** for one beat or **hold W** to keep winding. **S** undoes up to 32
-exchanges or beats; **R** restarts, **H** opens help, and **M** toggles sound.
+**Tap W** for one step or **hold W** to keep stepping. Each step advances all
+moving artifacts together; fast motion can cover two tiles. **S** undoes up to
+32 exchanges or steps; **R** restarts, **H** opens help, and **M** toggles sound.
 A pearl completes its journey only when it is still on a nest. A full pocket
 swaps motions, so it must be emptied before it can brake another pearl.
 
 A joystick in **port 2** uses left/right to select, fire to exchange, up to
-wind, and down to undo. Press **Return or fire** to begin. Restored rooms unlock
+step, and down to undo. Press **Return or fire** to begin. Restored rooms unlock
 for replay during the current session.
 
 ![Borrowed Motion rendered by VICE](docs/borrowed-motion.png)

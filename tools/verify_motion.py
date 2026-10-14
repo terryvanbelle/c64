@@ -96,6 +96,7 @@ class Validator:
         self.previous = held
         # input_controls, input_pressed, menu_keys, menu_pressed are contiguous.
         self.m.memwrite(self.l["input_controls"], bytes((held, pressed, menu, menu)))
+        self.m.memwrite(self.l["raw_controls"], bytes((held,)))
         self.stop_next()
         self.ticks += 1
         return self.state()
@@ -278,7 +279,8 @@ class Validator:
         self.write("settled", state.nests_used.bit_count())
         self.write("selected", next(i for i, a in enumerate(state.actors) if a.active))
         for field in ("swaps", "wind_count", "undo_count", "undo_head", "anim_left",
-                      "micro_phase", "controls_buffer", "select_repeat", "undo_repeat"):
+                      "micro_phase", "controls_buffer", "select_repeat", "undo_repeat",
+                      "restart_wait"):
             self.write(field, 0)
         self.write("scene", 1)
         self.previous = 0
@@ -369,6 +371,7 @@ class Validator:
         # A normal room with an unmoving pearl cannot complete while its bell winds.
         self.write("room_index", 0)
         self.tick(menu=2)
+        self.idle()             # Release R before stepping the restarted room.
         snapshots = []
         expected = initial_state(authored_levels()[0])
         for _ in range(40):

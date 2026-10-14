@@ -6,8 +6,8 @@ Recover the motion of brass bells, lend it to luminous pearls, and bring every
 pearl to rest in a golden nest.
 
 The ten rooms form a complete campaign. There is no deadline: the world advances
-only when you wind it. Take as long as you like to inspect a room and plan the
-next exchange.
+only when you choose to step forward. Take as long as you like to inspect a room
+and plan the next exchange.
 
 ![Borrowed Motion opening screen in VICE](borrowed-motion-title.png)
 
@@ -19,13 +19,14 @@ and speed), and **Space** trades its contents with the selected artifact.
 - An **empty pocket** takes an artifact's motion and leaves it still.
 - A **full pocket** gives its motion to the artifact and receives the artifact's
   previous motion. It only stops the artifact if the pocket was empty.
-- **Tap W** to advance one complete beat. **Hold W** to keep winding. All moving
-  artifacts advance together; release the key to stop after the current beat.
+- **Tap W: one step; hold W: keep stepping.** Each step advances the whole room
+  together. Objects with motion follow their arrows; fast motion can cover two
+  tiles per step. Release the key to stop after the current step.
 - A pearl settles when it is **still on an unused golden nest**. Passing over
   a nest is not enough. Take its motion back when it arrives.
 
 In the first room, take the bell's eastward motion, select the pearl, and lend it
-that motion. Wind five beats to reach the nest, then take the motion back. The
+that motion. Take five steps to reach the nest, then take the motion back. The
 empty cradle blossoms when the pearl settles. Later rooms ask you to find useful
 places for displaced motion and change a journey partway through.
 
@@ -44,7 +45,7 @@ cycle through artifacts; they do not steer an artifact directly.
 |---|---|---|
 | Select previous / next artifact | A / D | Left / right |
 | Exchange selected artifact's motion | Space | Fire |
-| Wind one beat / keep winding | Tap / hold W | Tap / hold up |
+| Advance one step / keep stepping | Tap / hold W | Tap / hold up |
 | Undo | S | Down |
 | Start or continue to the next room | Return or Space | Fire |
 | Restart the current room | R | Use keyboard |
@@ -52,10 +53,19 @@ cycle through artifacts; they do not steer an artifact directly.
 | Toggle sound | M | Use keyboard |
 | Return to the title | RUN/STOP; normally Escape in macOS VICE | Use keyboard |
 
-Release gameplay controls before using R, H, M, Return, or RUN/STOP. The input
-scanner requires this to avoid ambiguous combinations on the C64 keyboard.
+Release gameplay controls before using H, M, Return, or RUN/STOP. **R also works
+while W alone is held**, and from the in-game help screen. After restarting,
+release R and the gameplay controls before acting again. This keeps a held
+direction from immediately moving the freshly restored objects. Larger keyboard
+chords are ignored for restart because the C64 matrix can falsely report R.
 
-Undo remembers the last **32 exchanges and winding beats** in the current room;
+Restart restores every artifact's original position and movement, empties your
+pocket, reopens all nests, clears the swap/step counters and undo history, and
+discards any queued action or unfinished animation. Unlocked rooms remain
+available. Some rooms begin with movement already assigned to their objects;
+those original arrows are restored too.
+
+Undo remembers the last **32 exchanges and steps** in the current room;
 hold S/down to undo repeatedly. You can undo the final exchange after a room
 is complete. Starting the next room or restarting clears that room's undo
 history. Restarting is always available if you want a fresh attempt.
@@ -69,33 +79,33 @@ lost when you reset or close the emulator; the game does not write a save file.
 **Cyan pearls** belong in nests. **Brass bells** supply or hold motion. White
 corner brackets identify the selected artifact. The HUD shows the motion in
 your **POCKET**, the selected artifact and its motion, and how many pearls
-**REST**. **SWAPS** counts exchanges; winding does not increase that count.
+**REST**. **SWAPS** counts exchanges; stepping does not increase that count.
 
 Each artifact has a direction marker. A **2 beside a HUD arrow** identifies
 fast motion. The **purple ghost** predicts the selected artifact's position
-after the next complete beat, including reflections, mirrors, and slowing glass.
+after the next complete step, including reflections, mirrors, and slowing glass.
 It is a preview, not another artifact or a destination to collect.
 
 | Object or surface | Effect |
 |---|---|
-| Ordinary motion | Attempts one tile per beat |
-| Fast motion | Attempts two consecutive steps per beat |
-| Wall or room edge | Reverses direction; that attempted step is used without entering the wall |
+| Ordinary motion | Attempts one tile per step |
+| Fast motion | Attempts two consecutive tile moves per step |
+| Wall or room edge | Reverses direction; that tile attempt is used without entering the wall |
 | Slash or backslash mirror | Turns motion on entry; preserves speed |
-| Hourglass-shaped soft glass | Reduces fast motion to ordinary speed and ends the current beat there |
+| Hourglass-shaped soft glass | Reduces fast motion to ordinary speed and ends the current step there |
 | Empty golden nest | Accepts a stationary pearl |
 | Filled star-shaped nest | Already restored; remains passable |
 
-Fast motion completes both steps before another exchange. A wall reversal can
-therefore be followed by a step in the opposite direction during the same beat.
-Use the ghost to inspect the result before winding. You can stop and think
-between beats without losing anything.
+Fast motion completes both tile attempts before another exchange. A wall
+reversal can therefore be followed by a move in the opposite direction during
+the same step. Use the ghost to inspect the result before stepping. You can
+stop and think between steps without losing anything.
 
 ## The ten rooms
 
 | Room | Name | Main idea |
 |---|---|---|
-| 1 | The First Loan | Take, lend, wind, and recover motion |
+| 1 | The First Loan | Take, lend, step, and recover motion |
 | 2 | A Change of Heart | Exchange with a full pocket |
 | 3 | The Patient Wall | Find a useful reflection |
 | 4 | An Unexpected Turn | Turn a journey with a mirror |
@@ -155,8 +165,23 @@ with a 6581**, **NTSC with an 8580**, and **old NTSC with a 6581**. Each
 configuration completed all ten authored solutions, undo
 checks, and 60 movement-rule cases. Regional pacing was checked explicitly on
 NTSC and old NTSC. These checks establish agreement with the independent rules
-model and the tested emulator configurations. The later pocket terminology
-update is a rebuild without repeating those emulator checks.
+model and the tested emulator configurations. The release with the restart fix
+and **pocket / step** terminology repeated the full suite on all three video
+standards, including their timing checks.
+
+The focused restart suite additionally passed **78 restart comparisons and five
+menu-decoding cases per video standard**. It compares every room's logical
+state, visible screen and Color RAM, and enabled sprite positions with a fresh
+room. Cases cover moved objects, a full pocket, completed deliveries, unfinished
+animation, queued exchanges, room completion, and help. Room 6 also exercises
+R+W, held controls after restart, and two keyboard combinations that would
+otherwise generate a phantom R. These matrix cases inject modeled scan results
+before the real menu decoder; they are not a physical keyboard test.
+
+The current D64 also cold-loaded with true 1541 emulation and device-8 loading
+traps disabled. Its loaded PRG matched the release file byte for byte. The
+regression tool is [`verify_motion_restart.py`](../tools/verify_motion_restart.py);
+use a separate disposable VICE instance as described in its header.
 
 That release's D64 was also launched from a fresh PAL/6581 VICE instance with
 true 1541 emulation and device-8 loading traps disabled. It loaded successfully

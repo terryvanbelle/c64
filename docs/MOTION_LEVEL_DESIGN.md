@@ -6,10 +6,12 @@ complete course in that relationship. Later rooms require changing a journey
 halfway through and finding somewhere useful to put the movement that was
 replaced.
 
-The game gives the player control of time. Objects move only while the player
-winds the world. Releasing the winding control leaves a stable situation to
-inspect. Interesting decisions should concern whose movement is useful next,
-not the speed at which the player can change selection.
+The game gives the player control of time. Tap W for one step; hold W to keep
+stepping. Each complete step advances all objects together according to their
+movement; fast motion can cover two tiles in that step. Releasing the step
+control leaves a stable situation to inspect. Interesting decisions should
+concern whose movement is useful next, not the speed at which the player can
+change selection.
 
 These are original authored rooms for this repository. The reference model
 establishes their mechanical solvability. Human play is still needed to judge
@@ -33,21 +35,21 @@ be selected or used as storage. Nests accept any pearl, and a used nest remains
 passable. When two stationary pearls share an unused nest, the earlier actor
 index settles first; the other pearl remains active.
 
-A normal movement travels one tile per beat. A fast movement attempts two
+A normal movement travels one tile per step. A fast movement attempts two
 consecutive microsteps. Hitting a wall or the edge reverses direction and uses
 that microstep without entering the wall. The remaining microstep of a fast
-beat still occurs. A slash or backslash changes direction on entry, preserving
+step still occurs. A slash or backslash changes direction on entry, preserving
 speed. Entering soft glass immediately reduces a fast movement to normal speed
-and ends any remaining microsteps of that beat.
+and ends any remaining microsteps of that step.
 
 | Tile | Entering east | Entering south | Entering west | Entering north |
 |---|---|---|---|---|
 | Slash `/` | North | West | South | East |
 | Backslash `\` | South | East | North | West |
 
-Settlement is checked after every exchange and after each complete beat. The
-model does not settle a pearl during the middle of a fast beat. Intended fast
-solutions remain straight during each beat; none requires interpreting a
+Settlement is checked after every exchange and after each complete step. The
+model does not settle a pearl during the middle of a fast step. Intended fast
+solutions remain straight during each step; none requires interpreting a
 visually diagonal interpolation across a corner.
 
 ### A useful conservation rule
@@ -59,16 +61,16 @@ stationary pearl and therefore removes no movement.
 A finished room can store movement only in its bells and the pocket. Therefore,
 with one bell, a solvable room must begin with at most two nonempty movements.
 The generator checks this necessary condition. It also checks conservation
-after every exchange and every beat of every reference solution. This condition
+after every exchange and every step of every reference solution. This condition
 alone does not prove a room is solvable; the complete solution replay does that.
 
 ## The ten rooms
 
 “Study target” means the exchange count of the checked authored solution. It is
 not a claim that the count is optimal. Taking fewer exchanges is welcome.
-Winding beats do not increase this count.
+Steps do not increase this count.
 
-| Room | New relationship | Study target | Reference winding beats |
+| Room | New relationship | Study target | Reference steps |
 |---|---|---:|---:|
 | 1 The First Loan | Take a bell's motion, lend it, and recover it to settle | 3 | 5 |
 | 2 A Change of Heart | A full pocket exchanges motion; an empty pocket brakes | 4 | 2 |
@@ -110,7 +112,7 @@ The nest is west of the pearl, while the available movement heads east. The
 right wall provides the reverse heading. The player may send the pearl to the
 wall or wait for a suitable direction in the donor before borrowing it.
 
-The route includes a short interval of predictable winding. Holding the winding
+The route includes a short interval of predictable stepping. Holding the step
 control is appropriate here; the room should not demand sixteen separate key
 presses. It teaches a transformation that can later rescue an imperfect plan.
 
@@ -151,12 +153,12 @@ exchange rule as the pearls.
 ### Long Strides
 
 The game returns to one pearl and one bell to teach fast movement without
-competing demands. A double eastward arrow covers ten tiles in five beats. The
+competing demands. A double eastward arrow covers ten tiles in five steps. The
 nest is on that straightforward sequence of stopping positions.
 
 The initial fast lesson avoids a skipped destination, a bounce, or a mirror.
-Those interactions can be explored after the difference between a step and a
-beat is apparent.
+Those interactions can be explored after the difference between a tile move
+and a complete step is apparent.
 
 ### The Soft Glass
 
@@ -165,7 +167,7 @@ fast, but a clearly drawn glass tile on the route reduces it to ordinary speed.
 The pearl can then stop precisely at its destination.
 
 The glass sits on every direct horizontal approach from the starting position.
-The authored route encounters it on the first microstep of a beat, exercising
+The authored route encounters it on the first microstep of a step, exercising
 the immediate slowing rule. The source bell's separate lane contains no glass.
 
 ### The Quiet Exchange
@@ -175,7 +177,7 @@ travelling north toward a nest. Another begins stationary to the west of its
 own branch. The player borrows eastward movement from the bell to bring that
 pearl to the junction.
 
-After four beats, the first pearl is on its nest while the second is at the
+After four steps, the first pearl is on its nest while the second is at the
 junction. Braking the arrival supplies the northward movement needed to turn
 the other pearl. That exchange puts eastward movement into the pocket, so the
 bell is useful again as storage. After the second delivery, the same northward
@@ -188,7 +190,7 @@ who treats every loan as an uninterrupted trip must revise that model.
 ### Borrowed Tomorrow
 
 A slow northbound pearl approaches a horizontal route while a fast eastbound
-pearl approaches a nest elsewhere. After two beats, braking the fast arrival
+pearl approaches a nest elsewhere. After two steps, braking the fast arrival
 provides the motion that turns the first pearl east. Its displaced northward
 movement starts the third pearl.
 
@@ -212,7 +214,7 @@ storage. Those arrangements were mechanically valid but repeated the earlier
 loop too closely. The current pair introduces the missing turn at a junction,
 a displaced direction that becomes another artifact's tool, and staggered
 arrival times. Their complete authored solutions still use only ten and nine
-winding beats respectively.
+steps respectively.
 
 There is no requirement to reproduce the authored solution. Borrowing a
 reflected direction from a bell, reaching a different acceptable nest, or using
@@ -228,9 +230,9 @@ Several apparent shortcuts are intentionally prevented by the rules:
   repeated action.
 - Settled pearls cannot become free storage. Bells retain that role throughout
   the room.
-- Repeatedly exchanging with the same artifact without winding simply swaps
+- Repeatedly exchanging with the same artifact without stepping simply swaps
   the same two movements back and forth.
-- Winding alone cannot settle an initially moving pearl. Every published room
+- Stepping alone cannot settle an initially moving pearl. Every published room
   begins with all pearls away from nests.
 
 The unlimited thinking time is deliberate. Freezing the world forever cannot
@@ -243,7 +245,10 @@ safe pause dangerous.
 The editable source and reference model are both in
 [`tools/generate_motion_levels.py`](../tools/generate_motion_levels.py). They use
 only Python's standard library. The model operates on immutable states, with
-explicit functions for exchange, winding, settlement, and completion.
+explicit functions for exchange, stepping, settlement, and completion. The
+existing reference-model API calls stepping `wind`, with a `beats` parameter;
+those internal names still represent complete steps and are retained in the
+developer example below.
 
 Run:
 
@@ -253,9 +258,9 @@ python3 tools/generate_motion_levels.py
 
 Generation checks every room's dimensions, actor bounds, tile values, motion
 values, initial placement, nest count, final storage capacity, and fixed text
-widths. It replays every reference exchange and every individual beat, checking
+widths. It replays every reference exchange and every individual step, checking
 state invariants and conservation throughout. All ten reference solutions finish
-with every pearl settled. Every room also survives a thousand-beat no-exchange
+with every pearl settled. Every room also survives a thousand-step no-exchange
 check without being accidentally completed.
 
 Small rule examples check every mirror heading at both speeds, a fast wall
@@ -272,21 +277,21 @@ python3 tools/generate_motion_levels.py --solve 1 2 3 4 5 7 8
 It independently finds solutions for rooms 1 through 5, 7, and 8. The room 6
 search, and separate searches of rooms 9 and 10, exceeded a 100,000-state bound;
 their authored solutions remain fully replay-checked. The solver minimizes the
-number of exchanges plus individual winding beats, which is a different measure
+number of exchanges plus individual steps, which is a different measure
 from the exchange-only study targets listed above. Neither measure establishes
 human difficulty or enjoyment.
 
 Three deterministic blind policies were also run for up to 300 iterations:
-cycling through one exchange and one beat, exchanging every active actor before
-one beat, and exchanging every active actor before two beats. None solved the
+cycling through one exchange and one step, exchanging every active actor before
+one step, and exchanging every active actor before two steps. None solved the
 whole campaign. The first policy eventually solved rooms 1, 2, 3, and 9; the
 second solved 1, 2, and 7; the third solved 1, 2, 3, and 9. None solved room 10.
 The fastest blind completion of room 9 required 43 iterations of the four-actor
-sweep, compared with the authored eight exchanges and ten beats. A blind search
+sweep, compared with the authored eight exchanges and ten steps. A blind search
 can eventually reach valid states in a forgiving finite puzzle; these results
 do not identify a simple repeated action that bypasses the complete design.
 
-The JSON output contains the initial state, complete per-beat solution traces,
+The JSON output contains the initial state, complete per-step solution traces,
 and exact expected states after exchanges. The implementation can compare its
 memory state against these traces in VICE. Such a comparison establishes
 agreement with these rules; it does not establish that players find them clear

@@ -231,7 +231,7 @@ def authored_levels():
     b = lambda x, y, motion=0: Actor(1, x, y, motion)
     return [
         make_level(
-            "THE FIRST LOAN", "TAKE. GIVE. WIND. TAKE TO REST.",
+            "THE FIRST LOAN", "TAKE. GIVE. STEP. TAKE TO REST.",
             [p(7, 4), b(2, 4, EAST)], [(12, 4)],
             [('swap', 1), ('swap', 0), ('wind', 5), ('swap', 0)],
             "Borrow the bell's movement, lend it to the pearl, then take it back on a nest.",
@@ -273,7 +273,7 @@ def authored_levels():
             walls=[(x, y) for x in range(8, 11) for y in range(2, 4)] +
                   [(x, y) for x in range(7, 10) for y in range(5, 7)]),
         make_level(
-            "LONG STRIDES", "DOUBLE ARROWS TAKE TWO STEPS PER BEAT.",
+            "LONG STRIDES", "DOUBLE ARROWS: TWO TILES PER STEP.",
             [p(3, 4), b(2, 2, 5)], [(13, 4)],
             [('swap', 1), ('swap', 0), ('wind', 5), ('swap', 0)],
             "A fast loan covers two tiles in one beat; stop after a complete beat.",
