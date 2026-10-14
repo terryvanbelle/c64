@@ -5,31 +5,30 @@
 ; duel_input_poll updates dual_controls[2]: forward1, reverse2, hull-left4,
 ; hull-right8, fire16, turret-left32, turret-right64.
 ;
-; Keyboard P1: WASD = map north/west/south/east, Q/2 turret, X fire.
-; Keyboard P2: UBNM = map north/west/south/east, semicolon/Return turret,
-; period fire. Opposing directions cancel on each axis; two remaining axes
+; Keyboard P1: WASD = map north/west/south/east, X button.
+; Keyboard P2: UBNM = map north/west/south/east, period button.
+; Hold the button + west/east to aim; release it to fire, just like a joystick.
+; Without the button, opposing directions cancel on each axis; two remaining axes
 ; select a diagonal. Turn the hull along the shortest route, then drive forward
 ; once aligned. An exact half-turn chooses clockwise. The game still owns its
 ; ordinary hull-turn gate, physical speed, terrain and collision rules.
 ; Fully canceled movement emits neutral forward+reverse (3): the game rejects
 ; that throttle pair, while menus still see that gameplay keys are being held.
-; These fourteen gameplay switches form a matrix tree. Key 1 adds its final
+; These ten gameplay switches form a matrix forest. Key 1 adds another
 ; leaf, providing an unambiguous common keyboard pause without mapped ghosts.
-; Use VICE's default symbolic map: its semicolon is physical C64 PA6/PB2.
 ;
 ; Joysticks: P1 port2, P2 port1. Button released: stick controls throttle/hull.
 ; Hold button: left/right rotate the turret, throttle/hull are zero. Releasing
 ; button emits one FIRE pulse; movement may resume on that same sample. Only
-; the actual button transition creates this pulse. Keyboard polls clear joystick
-; button history, preventing stale release pulses after a control-mode switch.
+; the actual button transition creates this pulse. Both input modes share the
+; button decoder. Mode changes clear history, preventing stale release pulses.
 ;
 ; menu_controls: live keyboard key1=$01 pause; live joystick RUN/STOP=$01 pause.
 ; duel_menu_poll scans title/results regardless of mode and returns menu_controls
 ; in A: Return/RUNSTOP=$01, F1=$02, K=$08, J=$10, C=$20, H=$40.
 ; It separately updates menu_difficulty: key1=$01, key2=$02, key3=$04.
 ; Snapshot menu bytes before live poll, which replaces menu_controls only.
-; The engine gates admin keys while gameplay controls are held. Title key2 is
-; also P1 turret-right: exempt that matching bit only when choosing difficulty2.
+; The engine gates admin keys while gameplay controls or a button are held.
 ;
 ; Both ports return to inputs, latches $FF. Only a selected low column is ever
 ; driven; never fight a joystick contact with a driven-high output. Joystick
@@ -42,6 +41,7 @@
 .export duel_input_poll, duel_menu_poll
 .export dual_controls, duel_controls, tank_controls
 .export input_mode, menu_controls, menu_difficulty
+.export fire_button_previous
 .import hull
 
 CIA1_PA=$dc00
@@ -59,7 +59,8 @@ menu_difficulty: .res 1
 input_baseline: .res 1
 input_matrix: .res 8
 joy_raw: .res 1
-joy_button_previous: .res 2
+fire_button_previous: .res 2
+input_mode_previous: .res 1
 
 .segment "RODATA"
 input_columns: .byte $fe,$fd,$fb,$f7,$ef,$df,$bf,$7f
@@ -145,12 +146,14 @@ done:
     rts
 .endproc
 
-; A=normalized physical stick bits0..4, X=player. Preserve X/Y.
+; A=normalized direction/button bits0..4, X=player. Preserve X/Y.
+; Keyboard uses the same button semantics, then converts released movement
+; from map directions to hull controls. Held-button aiming never gets converted.
 .proc decode_joystick
     sta joy_raw
     and #16
     beq @released
-    sta joy_button_previous,x
+    sta fire_button_previous,x
     lda joy_raw
     and #12
     asl
@@ -162,13 +165,13 @@ done:
     lda joy_raw
     and #15
     sta dual_controls,x
-    lda joy_button_previous,x
+    lda fire_button_previous,x
     beq @done
     lda dual_controls,x
     ora #16
     sta dual_controls,x
     lda #0
-    sta joy_button_previous,x
+    sta fire_button_previous,x
 @done:
     rts
 .endproc
@@ -178,6 +181,14 @@ done:
     sta dual_controls
     sta dual_controls+1
     sta menu_controls
+    lda input_mode
+    cmp input_mode_previous
+    beq @mode_ready
+    sta input_mode_previous
+    lda #0
+    sta fire_button_previous
+    sta fire_button_previous+1
+@mode_ready:
     lda input_mode
     beq @keyboard
     jsr ports_to_inputs
@@ -211,27 +222,34 @@ done:
     sta CIA1_PA
     rts
 @keyboard:
-    lda #0
-    sta joy_button_previous
-    sta joy_button_previous+1
     jsr scan_keyboard
     ADD_KEY 1,$02,dual_controls,1       ; W
     ADD_KEY 1,$20,dual_controls,2       ; S
     ADD_KEY 1,$04,dual_controls,4       ; A
     ADD_KEY 2,$04,dual_controls,8       ; D
     ADD_KEY 2,$80,dual_controls,16      ; X
-    ADD_KEY 7,$40,dual_controls,32      ; Q
-    ADD_KEY 7,$08,dual_controls,64      ; 2
     ADD_KEY 3,$40,dual_controls+1,1     ; U
     ADD_KEY 4,$80,dual_controls+1,2     ; N
     ADD_KEY 3,$10,dual_controls+1,4     ; B
     ADD_KEY 4,$10,dual_controls+1,8     ; M
     ADD_KEY 5,$10,dual_controls+1,16    ; period
-    ADD_KEY 6,$04,dual_controls+1,32    ; semicolon
-    ADD_KEY 0,$02,dual_controls+1,64    ; Return
     ADD_KEY 7,$01,menu_controls,1       ; common keyboard pause: 1
+    ldx #0
+    lda dual_controls
+    jsr decode_joystick
+    lda joy_raw
+    and #16
+    bne :+
     MAP_DIRECTION 0
+:
+    ldx #1
+    lda dual_controls+1
+    jsr decode_joystick
+    lda joy_raw
+    and #16
+    bne :+
     MAP_DIRECTION 1
+:
     rts
 .endproc
 

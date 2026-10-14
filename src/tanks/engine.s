@@ -12,6 +12,7 @@
 .import camera_x,camera_y,enemy_visible,bearing,range_band,zone_x,zone_y,terrain_here
 .import contact_known
 .import duel_input_poll,duel_menu_poll,dual_controls,input_mode,menu_controls,menu_difficulty
+.import fire_button_previous
 .import duel_sound_init,duel_sound_tick,duel_sound_silence,duel_sound_motion_sync
 .import __BSS_SIZE__,__WORK_SIZE__,__CODE_RUN__,__CODE_SIZE__,__RODATA_RUN__,__RODATA_SIZE__
 .export start,irq,irq_done,frame_published,controls_sampled,ai_controls_ready,simulation_done,main_loop
@@ -998,16 +999,9 @@ handle_menu:
     cmp #3
     jeq @resume
     lda dual_controls
-    sta menu_guard
-    lda difficulty_raw
-    and #2
-    beq :+
-    lda menu_guard           ; key 2 is also P1 turret-right outside menus
-    and #$bf
-    sta menu_guard
-:
-    lda menu_guard
     ora dual_controls+1
+    ora fire_button_previous
+    ora fire_button_previous+1
     jne @ready
     lda menu_pressed
     and #2
@@ -1104,6 +1098,8 @@ handle_menu:
 @resume:
     lda dual_controls
     ora dual_controls+1
+    ora fire_button_previous
+    ora fire_button_previous+1
     bne @resume_only
     lda menu_pressed
     and #2
@@ -1856,13 +1852,13 @@ setup_levels: .byte "1 EASY  2 MEDIUM  3 HARD",0
 setup_easy: .byte "1 EASY",0
 setup_medium: .byte "2 MEDIUM",0
 setup_hard: .byte "3 HARD",0
-setup_p1: .byte "P1 WASD MOVE Q/2 AIM",0
-setup_p2: .byte "P2 UBNM MOVE ;/RET AIM",0
-setup_key_extra: .byte "X/. FIRE 1 PAUSE F1 MAP",0
+setup_p1: .byte "P1 WASD X/FIRE 1/PAUSE",0
+setup_p2: .byte "P2 UBNM ./FIRE",0
+setup_key_extra: .byte "HOLD+L/R AIM RELEASE:SHOT",0
 setup_stick_drive: .byte "STICK DRIVE/TURN",0
 setup_stick_aim: .byte "HOLD FIRE + L/R AIM",0
 setup_stick_extra: .byte "RELEASE:SHOT ESC:PAUSE",0
-setup_start_cpu: .byte "P1 X TO BEGIN",0
+setup_start_cpu: .byte "P1 TAP X TO BEGIN",0
 setup_start_both: .byte "F1 MAP BOTH FIRE READY",0
 setup_start_sticks: .byte "F1 MAP FIRE TO BEGIN",0
 setup_cyan_win: .byte "CYAN WINS - FIRE READY",0
@@ -1978,7 +1974,6 @@ ready: .res 2
 menu_raw: .res 1
 menu_previous: .res 1
 menu_pressed: .res 1
-menu_guard: .res 1
 difficulty_raw: .res 1
 difficulty_previous: .res 1
 difficulty_pressed: .res 1

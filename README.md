@@ -75,8 +75,10 @@ stay quiet. Cannon fire, impacts, knockouts, and victory have original effects.
 
 **Keyboard:** cyan uses **WASD** and gold uses **U/B/N/M** for map directions.
 Hold a direction to turn the hull toward it, then drive; diagonals work and
-opposing directions cancel on each axis. Cyan uses **Q/2 + X** for turret/fire;
-gold uses **semicolon/Return + period**. **1** pauses keyboard play.
+opposing directions cancel on each axis. Cyan holds **X + A/D** to aim and
+releases **X** to shoot; gold holds **period + B/M** to aim and releases
+**period** to shoot. Aiming holds the tank still, just like holding joystick
+fire. **1** pauses keyboard play.
 
 **Joysticks:** cyan uses **port 2**, gold **port 1**. Up/down drive
 forward/reverse and left/right turn the hull;
@@ -86,7 +88,7 @@ Choose **K/J** for keyboard/joysticks, **H/C** for human/computer, or
 **1/2/3** for Easy/Medium/Hard on the title or result screen. **F1** creates a
 new map from setup or while paused with gameplay controls released. Both humans
 ready with fire; only cyan needs to ready against the CPU.
-On joysticks, press and release the button to ready.
+Press and release the fire key or joystick button to ready.
 
 ![Ironveil rendered by VICE](docs/ironveil.png)
 

@@ -43,8 +43,8 @@ result screen. **H** selects two humans; **C** selects the computer. Keys
 Medium is the initial computer difficulty. Opponent, difficulty, and input
 choices persist across rematches and new maps.
 
-Both human players trigger fire to ready: on joysticks, press **and release**
-the button. In computer mode, player 1 readies the
+Both human players trigger fire to ready: press **and release** the fire key
+or joystick button. In computer mode, player 1 readies the
 match and the computer is ready automatically. Release gameplay controls before
 changing menu settings. **F1** generates a new battlefield from setup. During a
 match, pause first, release gameplay controls, then press **F1** to return to
@@ -58,16 +58,26 @@ The opening screen reports which player still needs to ready.
 |---|---|---|
 | Move north / south | W / S | U / N |
 | Move west / east | A / D | B / M |
-| Turn turret left / right | Q / 2 | Semicolon / Return |
-| Fire | X | Period |
+| Aim left / right while stationary | Hold X + A / D | Hold period + B / M |
+| Fire one shell | Release X | Release period |
 | Pause / resume | 1 | 1 |
 
-Return turns player 2's turret during keyboard play; **1** pauses the match.
-Hold the movement keys to turn the hull along the shortest path toward the
-requested map direction, then drive forward once aligned. Hull turning keeps
+The fire keys act like joystick buttons. **Hold X or period** to stop and aim
+with that player's left/right movement keys; north/south have no effect while
+aiming. **Release the fire key** to shoot once. Tapping and releasing shoots in
+the current turret direction. Holding the key never fires repeatedly. Q, 2,
+semicolon, and Return no longer aim during play; **1** pauses the match.
+
+With the fire key released, hold movement keys to turn the hull along the
+shortest path toward the requested map direction, then drive forward once
+aligned. Hull turning keeps
 its normal ten-tick gate; keyboard movement does not bypass terrain or collision
 rules. Two axes select a diagonal, such as **W+D** or **U+M** for northeast.
 Opposing directions cancel independently on each axis.
+
+Movement can resume on the same tick as a shot if a direction remains held
+when the fire key is released. Changing between keyboard and joysticks clears
+the previous device's button history, so it cannot create an accidental shot.
 
 The keyboard layout is intended for VICE's default symbolic mapping and the
 corresponding physical C64 keys.
@@ -328,7 +338,24 @@ or emulator-only instruction is required.
 
 ## Verification status
 
-The released PRG's SHA-256 starts with `0aadca83`. These checks use the updated
+The simplified fire-key release controls passed **2,210 compiled input samples**
+with `tools/verify_tank_input.py`. These cover both players, all 16 movement
+chords, all eight hull headings, button holds and releases, one-shot release
+pulses, mode switches, removed aim keys, pause, and the preserved input ABI.
+The test executes the actual 6502 decoding and button-history code in `sim65`,
+replacing only the CIA-access leaf routines with deterministic input fixtures.
+It does not establish physical keyboard rollover or joystick electrical behavior.
+
+Run it with the existing cc65 installation:
+
+```sh
+python3 tools/verify_tank_input.py
+```
+
+The earlier release's broader verification is recorded below; its independent
+turret-key input counts and timing measurements describe that earlier version.
+
+That earlier PRG's SHA-256 starts with `0aadca83`. These checks use the updated
 corner starts, larger forests, map-relative keyboard controls, and yellow markers.
 
 - The independent generation audit checked **1,003 seeds**, with all terrain,
