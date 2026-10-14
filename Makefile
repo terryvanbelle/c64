@@ -10,7 +10,7 @@ DANCE_OBJECTS := $(DANCE_DIR)/engine.o $(DANCE_DIR)/music.o
 DANCE_PRG := $(BUILD_DIR)/nocturne.prg
 
 .PHONY: all dance disk demo run run-disk run-demo clean
-all: dance atlas duel
+all: dance atlas duel tanks
 dance: $(DANCE_PRG)
 demo: $(BUILD_DIR)/demo.prg
 disk: $(BUILD_DIR)/nocturne.d64
@@ -111,6 +111,38 @@ run-duel: $(BUILD_DIR)/bannerfall.prg
 	$(PYTHON) tools/run_vice.py --vice $(VICE) $<
 
 run-duel-disk: $(BUILD_DIR)/bannerfall.d64
+	$(PYTHON) tools/run_vice.py --vice $(VICE) $<
+
+.PHONY: tanks tanks-disk run-tanks run-tanks-disk
+tanks: $(BUILD_DIR)/ironveil.prg
+tanks-disk: $(BUILD_DIR)/ironveil.d64
+
+$(BUILD_DIR)/tanks:
+	mkdir -p $@
+
+$(BUILD_DIR)/tanks/assets.inc: tools/generate_tank_assets.py tools/generate_atlas_assets.py | $(BUILD_DIR)/tanks
+	$(PYTHON) tools/generate_tank_assets.py
+
+$(BUILD_DIR)/tanks/title.inc: tools/generate_tank_title.py tools/generate_atlas_assets.py | $(BUILD_DIR)/tanks
+	$(PYTHON) tools/generate_tank_title.py
+
+$(BUILD_DIR)/tanks/%.o: src/tanks/%.s $(BUILD_DIR)/tanks/assets.inc $(BUILD_DIR)/tanks/title.inc
+	$(CA65) -g -I $(BUILD_DIR)/tanks -l $(BUILD_DIR)/tanks/$*.lst -o $@ $<
+
+TANK_OBJECTS := $(addprefix $(BUILD_DIR)/tanks/,engine.o game.o world.o ai.o input.o sense.o sound.o)
+$(BUILD_DIR)/tanks/ironveil.bin: $(TANK_OBJECTS) tanks.cfg
+	$(LD65) -C tanks.cfg -m $(BUILD_DIR)/tanks/ironveil.map -Ln $(BUILD_DIR)/tanks/ironveil.lbl --dbgfile $(BUILD_DIR)/tanks/ironveil.dbg -o $@ $(TANK_OBJECTS)
+
+$(BUILD_DIR)/ironveil.prg: $(BUILD_DIR)/tanks/ironveil.bin tools/make_prg.py
+	$(PYTHON) tools/make_prg.py $< $@
+
+$(BUILD_DIR)/ironveil.d64: $(BUILD_DIR)/ironveil.prg
+	$(C1541) -format 'IRONVEIL,04' d64 $@ -write $< ironveil
+
+run-tanks: $(BUILD_DIR)/ironveil.prg
+	$(PYTHON) tools/run_vice.py --vice $(VICE) $<
+
+run-tanks-disk: $(BUILD_DIR)/ironveil.d64
 	$(PYTHON) tools/run_vice.py --vice $(VICE) $<
 
 clean:

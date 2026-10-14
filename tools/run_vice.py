@@ -41,22 +41,25 @@ def main():
     output = (Path("build") / ("dance" if program.stem == "nocturne" else program.stem)).resolve()
     output.mkdir(parents=True, exist_ok=True)
     label = f"C64 {program.stem.title()} {args.model.upper()}"
+    # Parallel compatibility runs must not overwrite a launcher that another
+    # LaunchServices request is about to execute.
+    variant = f"-{args.monitor_port}" if args.monitor_port else ""
     if sys.platform == "darwin":
         compiler = shutil.which("clang")
         if not compiler:
             parser.error("macOS launcher needs clang (Xcode Command Line Tools)")
-        bundle = output / (label + ".app")
+        bundle = output / (label + variant + ".app")
         contents = bundle / "Contents"
         binary = contents / "MacOS" / "launcher"
         binary.parent.mkdir(parents=True, exist_ok=True)
         with (contents / "Info.plist").open("wb") as handle:
             plistlib.dump({"CFBundleDisplayName": label, "CFBundleName": label,
                           "CFBundleExecutable": "launcher",
-                          "CFBundleIdentifier": f"local.c64.{program.stem}.{args.model}",
+                          "CFBundleIdentifier": f"local.c64.{program.stem}.{args.model}{variant}",
                           "CFBundlePackageType": "APPL", "CFBundleVersion": "1.0"}, handle)
         literals = ",\n        ".join(json.dumps(arg) for arg in command)
-        source = output / f"launcher_{args.model}.c"
-        logfile = json.dumps(str(output / f"vice_{args.model}.log"))
+        source = output / f"launcher_{args.model}{variant}.c"
+        logfile = json.dumps(str(output / f"vice_{args.model}{variant}.log"))
         source.write_text("#include <stdlib.h>\n#include <unistd.h>\n#include <stdio.h>\n#include <fcntl.h>\n"
                           "int main(void) {\n    char *const args[] = {\n        "
                           + literals + ",\n        NULL};\n"
@@ -67,7 +70,7 @@ def main():
         subprocess.run([compiler, str(source), "-o", str(binary)], check=True)
         subprocess.run(["open", "-n", str(bundle)], check=True)
     else:
-        log = (output / f"vice_{args.model}.log").open("ab")
+        log = (output / f"vice_{args.model}{variant}.log").open("ab")
         subprocess.Popen(command, stdout=log, stderr=log, start_new_session=True)
         log.close()
     print(f"Launched {label}; {program}")

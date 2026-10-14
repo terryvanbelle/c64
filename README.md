@@ -1,5 +1,50 @@
 # C64 experiments
 
+## Ironveil
+
+A deliberate split-screen tank duel across an asymmetric procedural battlefield.
+Drive through forests, deserts, reed banks, roads, bridges, and fords; turn the
+hull to protect your armor and aim the turret independently. Camouflage, mountain
+line of sight, and coarse sensor contacts make finding the opponent part of the
+fight. First to three knockouts wins, with a three-minute deadline and sudden
+death for ties.
+
+Play two humans locally or choose an **Easy / Medium / Hard** computer opponent.
+In computer mode the right pane shows a coarse contact map, keeping hidden enemy
+positions concealed. Human matches give each player a following **9×12-tile**,
+144×192-pixel view of the 32×16-tile world, with one compact HUD row above the
+maps. The original bitmap opening screen holds all game
+configuration and control help, and returns after a match.
+
+Two distinct low SID engines respond to actual movement and hull turns. A
+moving opponent becomes louder nearby; parked tanks and turret-only aiming
+stay quiet. Cannon fire, impacts, knockouts, and victory have original effects.
+
+![Ironveil opening screen in VICE](docs/ironveil-title.png)
+
+**Keyboard:** cyan uses **W/S**, **A/D**, **Q/2**, **X** for throttle, hull,
+turret, and fire. Gold uses **U/N**, **B/M**, **semicolon/Return**, **period**.
+**1** pauses keyboard play. **Joysticks:** cyan uses **port 2**, gold **port 1**;
+hold the button and move left/right to aim, then release the button to fire.
+Choose **K/J** for keyboard/joysticks, **H/C** for human/computer, or
+**1/2/3** for Easy/Medium/Hard on the title or result screen. **F1** creates a
+new map. Both humans ready with fire; only cyan needs to ready against the CPU.
+On joysticks, press and release the button to ready.
+
+![Ironveil rendered by VICE](docs/ironveil.png)
+
+Download the prebuilt [Ironveil PRG](dist/ironveil.prg) or
+[1541 disk image](dist/ironveil.d64), or build and run with:
+
+```sh
+make tanks
+make run-tanks
+make tanks-disk
+make run-tanks-disk
+```
+
+See [Ironveil controls, tactics, and hardware notes](docs/IRONVEIL.md).
+
 ## Bannerfall
 
 A capture-the-flag game across a fresh procedural battlefield. Play locally
@@ -92,7 +137,7 @@ make all
 make run
 ```
 
-`make all` builds Bannerfall, Atlas, and Nocturne; `make run` launches Nocturne.
+`make all` builds Ironveil, Bannerfall, Atlas, and Nocturne; `make run` launches Nocturne.
 The Nocturne output is `build/nocturne.prg`. The build regenerates the original graphics
 using Python's standard library; it needs no downloaded art or Python packages.
 On macOS the launch helper supplies the native app context needed by GTK VICE.
