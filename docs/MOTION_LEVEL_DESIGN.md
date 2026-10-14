@@ -22,9 +22,9 @@ into a nest; a brass bell provides a place to obtain or store movement. Artifact
 pass through one another, including through a pearl that has already settled.
 Selection and exchanges work across the entire room.
 
-The spool begins empty. Exchanging with a selected artifact swaps its complete
-movement with the spool. An empty spool therefore stops a moving artifact. A
-full spool changes that artifact's movement and acquires its previous movement.
+The pocket begins empty. Exchanging with a selected artifact swaps its complete
+movement with the pocket. An empty pocket therefore stops a moving artifact. A
+full pocket changes that artifact's movement and acquires its previous movement.
 Exchanges happen while the world is stopped.
 
 A stationary pearl on an unused nest immediately settles. Moving across a nest
@@ -56,7 +56,7 @@ Exchanges, reflections, and mirrors preserve the number of nonempty movements.
 Soft glass changes speed but also preserves that count. Settling removes a
 stationary pearl and therefore removes no movement.
 
-A finished room can store movement only in its bells and the spool. Therefore,
+A finished room can store movement only in its bells and the pocket. Therefore,
 with one bell, a solvable room must begin with at most two nonempty movements.
 The generator checks this necessary condition. It also checks conservation
 after every exchange and every beat of every reference solution. This condition
@@ -71,7 +71,7 @@ Winding beats do not increase this count.
 | Room | New relationship | Study target | Reference winding beats |
 |---|---|---:|---:|
 | 1 The First Loan | Take a bell's motion, lend it, and recover it to settle | 3 | 5 |
-| 2 A Change of Heart | A full spool exchanges motion; an empty spool brakes | 4 | 2 |
+| 2 A Change of Heart | A full pocket exchanges motion; an empty pocket brakes | 4 | 2 |
 | 3 The Patient Wall | A wall can make a useful reverse movement | 3 | 16 |
 | 4 An Unexpected Turn | A mirror converts a horizontal loan into a vertical one | 3 | 13 |
 | 5 Pass It On | One pearl's arrival provides the next pearl's movement | 5 | 17 |
@@ -96,12 +96,12 @@ at the nest. The hint gives the order of actions without introducing new terms.
 ### A Change of Heart
 
 The pearl already moves east, but its nest is north. The bell holds northward
-movement. Swapping the bell into the spool and then exchanging with the pearl
-provides the needed heading, but leaves eastward movement in the spool. Parking
-that movement in the bell empties the spool so it can brake the arriving pearl.
+movement. Swapping the bell into the pocket and then exchanging with the pearl
+provides the needed heading, but leaves eastward movement in the pocket. Parking
+that movement in the bell empties the pocket so it can brake the arriving pearl.
 
 This is the first room where pressing exchange does not necessarily mean stop.
-The spool's current arrow must remain conspicuous. The lesson is useful before
+The pocket's current arrow must remain conspicuous. The lesson is useful before
 adding more objects or geometry.
 
 ### The Patient Wall
@@ -177,7 +177,7 @@ pearl to the junction.
 
 After four beats, the first pearl is on its nest while the second is at the
 junction. Braking the arrival supplies the northward movement needed to turn
-the other pearl. That exchange puts eastward movement into the spool, so the
+the other pearl. That exchange puts eastward movement into the pocket, so the
 bell is useful again as storage. After the second delivery, the same northward
 movement can serve the third pearl.
 
@@ -194,7 +194,7 @@ movement starts the third pearl.
 
 The eastbound pearl encounters soft glass. The third pearl encounters a slash
 mirror and arrives first. The player stores its recovered movement in the bell
-to empty the spool, then lets the remaining pearl finish its slower journey.
+to empty the pocket, then lets the remaining pearl finish its slower journey.
 
 The finale combines the game's relationships with different arrival times. It
 does not add a new rule, a deadline, or a precision input requirement.
@@ -327,6 +327,6 @@ wind 5 beats
 swap actor 0
 ```
 
-A room is a win when every type-0 actor is inactive. The final nonempty spool
+A room is a win when every type-0 actor is inactive. The final nonempty pocket
 and the bell's continuing movement are valid; they are the motion recovered
 from the completed work.

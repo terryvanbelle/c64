@@ -10,7 +10,7 @@
 .import input_init,input_poll,input_controls,input_pressed,menu_pressed
 .import sound_init,sound_tick,sound_event,sound_silence,sound_enabled
 .export start,irq,main_loop,controls_sampled,tick_done,video_standard,video_frames
-.export scene,room_index,unlocked,selected,spool,settled,swaps,wind_count
+.export scene,room_index,unlocked,selected,pocket,settled,swaps,wind_count
 .export actor_x,actor_y,actor_motion,actor_active,actor_type,actor_count
 .export goal_used,goal_count,goal_x,goal_y,room_map,pearl_count
 .export anim_left,micro_phase,undo_count,undo_head,undo_buffer,state_begin,state_end
@@ -72,7 +72,7 @@ actor_y: .res ACTORS
 actor_motion: .res ACTORS
 actor_active: .res ACTORS
 goal_used: .res 1
-spool: .res 1
+pocket: .res 1
 selected: .res 1
 settled: .res 1
 swaps: .res 1
@@ -692,16 +692,16 @@ tick_done:
     lda actor_active,x
     beq @done
     lda actor_motion,x
-    cmp spool
+    cmp pocket
     beq @done                    ; swapping equal motions is a harmless no-op
     jsr push_undo
     ldx selected
     lda actor_motion,x
     sta swap_old
-    lda spool
+    lda pocket
     sta actor_motion,x
     lda swap_old
-    sta spool
+    sta pocket
     lda swaps
     cmp #$ff
     beq :+
@@ -715,7 +715,7 @@ tick_done:
     sta fx_life
     lda #0
     sta fx_kind
-    lda spool
+    lda pocket
     beq @give
     lda actor_motion,x
     bne @both
@@ -1199,16 +1199,16 @@ tick_done:
     lda #0
     sta hud_dirty
     TEXT hud_template,1,1,15
-    ldx spool
+    ldx pocket
     lda motion_chars,x
-    sta SCREEN+40+7
+    sta SCREEN+40+8
     lda #7
-    sta COLOR+40+7
-    lda spool
+    sta COLOR+40+8
+    lda pocket
     cmp #5
     bcc :+
-    lda #50                     ; explicit speed badge beside the spool arrow
-    sta SCREEN+40+8
+    lda #50                     ; explicit speed badge beside the pocket arrow
+    sta SCREEN+40+9
 :
     ldx selected
     lda actor_type,x
@@ -1296,7 +1296,7 @@ tick_done:
     ; artifact even when the pearl has just arrived on its nest.
     lda room_index
     jne @done
-    lda spool
+    lda pocket
     bne @holding
     lda actor_motion
     jne @drifting
@@ -1881,7 +1881,7 @@ hint_hi:
     .byte >(level_hints+I*38)
 .endrepeat
 heading: .byte "BORROWED MOTION         ROOM 00/10",0
-hud_template: .byte "SPOOL     PEARL 0    REST 0/0         ",0
+hud_template: .byte "POCKET    PEARL 0    REST 0/0         ",0
 swaps_label: .byte "SWAPS 000",0
 lesson_choose_bell: .byte "A/D: CHOOSE THE BELL. SPACE: TAKE.    ",0
 lesson_choose_pearl: .byte "A/D: CHOOSE THE PEARL TO GUIDE IT.    ",0
@@ -1906,7 +1906,7 @@ help_a: .byte "YOU CAN BORROW THE WAY THINGS MOVE.   ",0
 help_b: .byte "GUIDE EVERY PEARL INTO A GOLDEN NEST. ",0
 help_c: .byte "A/D OR LEFT/RIGHT: SELECT AN OBJECT.  ",0
 help_d: .byte "SPACE/FIRE: SWAP ITS MOTION WITH YOUR ",0
-help_e: .byte "SPOOL. AN EMPTY SPOOL MAKES IT STILL. ",0
+help_e: .byte "POCKET. AN EMPTY POCKET STOPS IT.     ",0
 help_f: .byte "TAP W/UP: ONE BEAT. HOLD: WIND MORE.  ",0
 help_g: .byte "RELEASE TO THINK. ALL OBJECTS WAIT.   ",0
 help_h: .byte "ON A NEST, TAKE A PEARL'S MOTION.     ",0

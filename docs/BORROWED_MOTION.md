@@ -13,12 +13,12 @@ next exchange.
 
 ## Play
 
-Select an artifact with **A/D**, then press **Space** to exchange its motion with
-the motion in your spool. The exchange includes both direction and speed.
+Select an artifact with **A/D**. Your pocket holds one movement (direction
+and speed), and **Space** trades its contents with the selected artifact.
 
-- An **empty spool** takes an artifact's motion and leaves it still.
-- A **full spool** gives its motion to the artifact and receives the artifact's
-  previous motion. It only stops the artifact if the spool was empty.
+- An **empty pocket** takes an artifact's motion and leaves it still.
+- A **full pocket** gives its motion to the artifact and receives the artifact's
+  previous motion. It only stops the artifact if the pocket was empty.
 - **Tap W** to advance one complete beat. **Hold W** to keep winding. All moving
   artifacts advance together; release the key to stop after the current beat.
 - A pearl settles when it is **still on an unused golden nest**. Passing over
@@ -68,7 +68,7 @@ lost when you reset or close the emulator; the game does not write a save file.
 
 **Cyan pearls** belong in nests. **Brass bells** supply or hold motion. White
 corner brackets identify the selected artifact. The HUD shows the motion in
-your **SPOOL**, the selected artifact and its motion, and how many pearls
+your **POCKET**, the selected artifact and its motion, and how many pearls
 **REST**. **SWAPS** counts exchanges; winding does not increase that count.
 
 Each artifact has a direction marker. A **2 beside a HUD arrow** identifies
@@ -96,7 +96,7 @@ between beats without losing anything.
 | Room | Name | Main idea |
 |---|---|---|
 | 1 | The First Loan | Take, lend, wind, and recover motion |
-| 2 | A Change of Heart | Exchange with a full spool |
+| 2 | A Change of Heart | Exchange with a full pocket |
 | 3 | The Patient Wall | Find a useful reflection |
 | 4 | An Unexpected Turn | Turn a journey with a mirror |
 | 5 | Pass It On | Reuse motion after a delivery |
@@ -111,7 +111,7 @@ command sequence, hidden timer, or penalty for taking an alternative route.
 
 ## Download and build
 
-The release includes a **17,734-byte PRG** and a standard 1541 disk image:
+The release includes a PRG and a standard 1541 disk image:
 
 - [Borrowed Motion PRG](../dist/borrowed-motion.prg)
 - [Borrowed Motion D64](../dist/borrowed-motion.d64)
@@ -150,15 +150,17 @@ hardware sprites, and SID sound. It detects PAL, common NTSC, and old NTSC and
 normalizes gameplay timing. The board fits on one screen; no memory expansion
 or cartridge is required.
 
-VICE checks covered **PAL with a 6581**, **NTSC with an 8580**, and **old NTSC
-with a 6581**. Each configuration completed all ten authored solutions, undo
+VICE checks of the original release, commit **`18b6a3f`**, covered **PAL
+with a 6581**, **NTSC with an 8580**, and **old NTSC with a 6581**. Each
+configuration completed all ten authored solutions, undo
 checks, and 60 movement-rule cases. Regional pacing was checked explicitly on
 NTSC and old NTSC. These checks establish agreement with the independent rules
-model and the tested emulator configurations.
+model and the tested emulator configurations. The later pocket terminology
+update is a rebuild without repeating those emulator checks.
 
-The distributed D64 was also launched from a fresh PAL/6581 VICE instance with
+That release's D64 was also launched from a fresh PAL/6581 VICE instance with
 true 1541 emulation and device-8 loading traps disabled. It loaded successfully
-to the game's title screen. The distributed PRG is byte-for-byte identical to
+to the game's title screen. Its distributed PRG was byte-for-byte identical to
 the build used for the three regional gameplay checks.
 
 The gameplay checks injected normalized controls into the compiled input path;

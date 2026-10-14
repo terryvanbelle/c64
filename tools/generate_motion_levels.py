@@ -37,7 +37,7 @@ class Actor:
 @dataclass(frozen=True)
 class State:
     actors: tuple[Actor, ...]
-    spool: int = STILL
+    pocket: int = STILL
     nests_used: int = 0
 
 
@@ -75,7 +75,7 @@ def settle(level, state):
                 and nest is not None and not used & (1 << nest)):
             actors[i] = replace(actor, active=False)
             used |= 1 << nest
-    return State(tuple(actors), state.spool, used)
+    return State(tuple(actors), state.pocket, used)
 
 
 def initial_state(level):
@@ -89,7 +89,7 @@ def swap(level, state, actor_index):
     if not actor.active:
         raise ValueError("Settled pearls cannot exchange motion")
     actors = list(state.actors)
-    actors[actor_index] = replace(actor, motion=state.spool)
+    actors[actor_index] = replace(actor, motion=state.pocket)
     return settle(level, State(tuple(actors), actor.motion, state.nests_used))
 
 
@@ -123,7 +123,7 @@ def wind(level, state, beats=1):
                 if tile == SLOWGLASS:
                     break  # Slowglass ends the current beat immediately.
             actors[i] = actor
-        state = settle(level, State(tuple(actors), state.spool, state.nests_used))
+        state = settle(level, State(tuple(actors), state.pocket, state.nests_used))
     return state
 
 
@@ -132,7 +132,7 @@ def won(state):
 
 
 def check_state(level, state):
-    assert 0 <= state.spool <= 8
+    assert 0 <= state.pocket <= 8
     assert 0 <= state.nests_used < (1 << len(level.nests))
     settled = 0
     for a in state.actors:
@@ -147,11 +147,11 @@ def check_state(level, state):
 
 
 def moving_tokens(state):
-    return int(state.spool != 0) + sum(a.motion != 0 for a in state.actors)
+    return int(state.pocket != 0) + sum(a.motion != 0 for a in state.actors)
 
 
 def state_json(state):
-    return {"spool": state.spool, "nests_used": state.nests_used,
+    return {"pocket": state.pocket, "nests_used": state.nests_used,
             "actors": [{"type": a.kind, "x": a.x, "y": a.y,
                         "motion": a.motion, "active": a.active}
                        for a in state.actors]}
@@ -199,7 +199,7 @@ def solve_breadth_first(level, max_states=250000):
         choices = [(('wind', 1), wind(level, state))]
         choices += [(('swap', i), swap(level, state, i))
                     for i, a in enumerate(state.actors)
-                    if a.active and a.motion != state.spool]
+                    if a.active and a.motion != state.pocket]
         for action, successor in choices:
             if successor not in previous:
                 previous[successor] = (state, action)
@@ -237,7 +237,7 @@ def authored_levels():
             "Borrow the bell's movement, lend it to the pearl, then take it back on a nest.",
             rectangles=[(1, 2, 16, 6)]),
         make_level(
-            "A CHANGE OF HEART", "A FULL SPOOL TRADES. EMPTY IT TO REST.",
+            "A CHANGE OF HEART", "FULL POCKET TRADES. EMPTY IT TO REST.",
             [p(3, 4, EAST), b(12, 6, NORTH)], [(3, 2)],
             [('swap', 1), ('swap', 0), ('swap', 1), ('wind', 2), ('swap', 0)],
             "Exchange two different movements, then park the unwanted movement in the bell.",

@@ -18,10 +18,10 @@ when the world advances and have unlimited time to think.
 
 ![Borrowed Motion opening screen in VICE](docs/borrowed-motion-title.png)
 
-**A/D** selects an artifact; **Space** exchanges its motion with your spool.
+**A/D** selects an artifact; **Space** exchanges its motion with your pocket.
 **Tap W** for one beat or **hold W** to keep winding. **S** undoes up to 32
 exchanges or beats; **R** restarts, **H** opens help, and **M** toggles sound.
-A pearl completes its journey only when it is still on a nest. A full spool
+A pearl completes its journey only when it is still on a nest. A full pocket
 swaps motions, so it must be emptied before it can brake another pearl.
 
 A joystick in **port 2** uses left/right to select, fire to exchange, up to

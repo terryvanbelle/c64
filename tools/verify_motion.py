@@ -33,7 +33,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ARRAYS = {"actor_x": 6, "actor_y": 6, "actor_motion": 6, "actor_active": 6,
           "actor_type": 6, "goal_x": 5, "goal_y": 5}
 WORDS = {"wind_count", "video_frames", "late_ticks"}
-FIELDS = ("scene", "room_index", "unlocked", "selected", "spool", "settled",
+FIELDS = ("scene", "room_index", "unlocked", "selected", "pocket", "settled",
           "swaps", "wind_count", "actor_count", "goal_count", "goal_used",
           "pearl_count", "anim_left", "micro_phase", "undo_count", "undo_head",
           "controls_buffer", "video_standard", "video_frames", "late_ticks")
@@ -112,7 +112,7 @@ class Validator:
                              actual["actor_y"][i], actual["actor_motion"][i],
                              bool(actual["actor_active"][i]))
                        for i in range(actual["actor_count"]))
-        observed = State(actors, actual["spool"], actual["goal_used"])
+        observed = State(actors, actual["pocket"], actual["goal_used"])
         self.check(observed == expected, context,
                    {"expected": state_json(expected), "actual": state_json(observed)})
         self.check(actual["settled"] == expected.nests_used.bit_count(),
@@ -274,7 +274,7 @@ class Validator:
         self.write("goal_x", [p[0] for p in level.nests] + [0] * (5 - len(level.nests)))
         self.write("goal_y", [p[1] for p in level.nests] + [0] * (5 - len(level.nests)))
         self.write("goal_used", state.nests_used)
-        self.write("spool", state.spool)
+        self.write("pocket", state.pocket)
         self.write("settled", state.nests_used.bit_count())
         self.write("selected", next(i for i, a in enumerate(state.actors) if a.active))
         for field in ("swaps", "wind_count", "undo_count", "undo_head", "anim_left",
@@ -324,7 +324,7 @@ class Validator:
         self.tick(1, pressed=1)
         self.tick(16, pressed=16)
         state = self.state()
-        self.check(state["spool"] == 0 and state["controls_buffer"] == 16,
+        self.check(state["pocket"] == 0 and state["controls_buffer"] == 16,
                    "exchange waits during animation", state)
         for _ in range(80):
             if not self.state()["anim_left"]:
@@ -358,7 +358,7 @@ class Validator:
         self.write("swaps", 255)
         self.exchange(0)
         self.check(self.state()["swaps"] == 255, "swap counter saturates")
-        self.fixture(level, replace(initial_state(level), spool=1))
+        self.fixture(level, replace(initial_state(level), pocket=1))
         before = self.state()
         self.exchange(0)
         self.check(self.state()["snapshot"] == before["snapshot"] and
