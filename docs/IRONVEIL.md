@@ -23,10 +23,12 @@ briefly stuns the tank and grants a short damage shield. A knockout respawns the
 tank after 1.5 seconds, with 1.2 seconds of spawn protection. Shooting reveals
 the tank for one second, so firing from cover gives away its position.
 
-Hull and turret turn separately: a tank can back away while keeping its frontal
-armor and gun pointed toward the opponent. One shell per player can be active;
-the normal firing cooldown is half a second. Mountains stop shells, while
-water and vegetation allow shots to pass.
+Hull and turret turn separately. Joystick controls allow reversing while
+keeping frontal armor and the gun pointed toward the opponent. Keyboard
+movement turns the hull toward the chosen map direction; the turret remains
+independent. One shell per player can be active; the normal firing cooldown is
+half a second. Mountains stop shells, while water and vegetation allow shots
+to pass.
 
 ## Controls
 
@@ -54,19 +56,26 @@ The opening screen reports which player still needs to ready.
 
 | Action | Player 1, cyan | Player 2, gold |
 |---|---|---|
-| Forward / reverse | W / S | U / N |
-| Turn hull left / right | A / D | B / M |
+| Move north / south | W / S | U / N |
+| Move west / east | A / D | B / M |
 | Turn turret left / right | Q / 2 | Semicolon / Return |
 | Fire | X | Period |
 | Pause / resume | 1 | 1 |
 
 Return turns player 2's turret during keyboard play; **1** pauses the match.
+Hold the movement keys to turn the hull along the shortest path toward the
+requested map direction, then drive forward once aligned. Hull turning keeps
+its normal ten-tick gate; keyboard movement does not bypass terrain or collision
+rules. Two axes select a diagonal, such as **W+D** or **U+M** for northeast.
+Opposing directions cancel independently on each axis.
+
 The keyboard layout is intended for VICE's default symbolic mapping and the
 corresponding physical C64 keys.
 
 ### Joysticks
 
-Player 1 uses **port 2**; player 2 uses **port 1**.
+Player 1 uses **port 2**; player 2 uses **port 1**. Joystick movement remains
+relative to the hull.
 
 - Button released: up/down drive forward/reverse; left/right turn the hull.
 - Hold the button: left/right aim the turret; the tank holds position.
@@ -91,12 +100,21 @@ that sector's center, rather than its exact location. When a visible tank
 disappears, its exact contact is immediately replaced by the cached coarse
 contact. Respawning tanks provide no contact.
 
+A **yellow diamond** marks the reported sector centre when it is inside the
+view. Otherwise a **yellow edge arrow** points along the reported eight-way
+bearing. Both use the once-per-second sensor report, so the marker gives an
+approximate search area rather than a concealed tank's exact coordinates.
+No marker appears while the contact is unavailable. Terrain underneath a
+marker retains its normal movement rules.
+
 Against the computer, the right pane is a **contact map based on the human's
 coarse sensor sector**, rather than a camera following the computer. The
 computer's tank appears there only when the human's visibility rules reveal it;
 its exact armor value is concealed until spotted. This keeps forest and
 reed camouflage useful without giving the human a second view that tracks a
 hidden opponent.
+The solo right pane's marker also uses the human's reported contact, preserving
+that same approximation.
 
 ### HUD legend
 
@@ -168,13 +186,22 @@ asymmetric; its two sides are generated independently.
 A central water channel has fast bridge crossings at rows 3, 8, and 12, plus
 slower fords at rows 5, 10, and 14. Reed banks connect the fords to the bridge
 approaches and provide concealed flanking routes. Independently bent roads join
-the crossings to clear spawn aprons at tiles (3,8) and (28,8). Every generated
-map contains all eight terrain types and a connected route between the spawns.
+the crossings through vertical road spines to clear **3 × 3 spawn aprons** at
+tiles **(1,1)** and **(30,14)**. Initial and respawn top-left pixels are
+**(16,16)** and **(480,224)**; hulls initially face southeast and northwest.
+Every generated map contains all eight terrain types and a connected route
+between the spawns.
+
+Eighteen additional rounded 5 × 5 woodland regions preserve existing ponds and
+mountains. Roads, crossings, and spawn aprons are carved afterward. Across the
+audited seeds, forest covers **30.46%** of the map on average, up from **6.56%**
+in the earlier generator; observed coverage ranges from **20.51% to 38.67%**.
 
 A temporary independent integer model checked **1,003 seed samples**: all eight
 terrains, clear spawn aprons, connected spawns, all three bridges, and all three
-fords passed. No fully mirrored layouts occurred. This checks generation
-properties; final emulator checks separately exercise the compiled generator.
+fords passed. No fully mirrored layouts occurred. The actual ca65 generator
+also produced byte-for-byte identical maps for all 1,003 seeds in temporary
+sim65 runs. These generation checks do not measure video or IRQ timing.
 
 ## Computer opponent
 
@@ -189,7 +216,11 @@ Hidden contacts cause a search around the coarse sector. A visible opponent's
 occupied cells are private planning obstacles, helping flank routes pass around
 the tank. They do not modify the battlefield or the physical collision rules.
 Short terrain checks select a nearby rear angle or the other side when a
-mountain blocks the intended firing approach. A close contact also makes the
+mountain blocks the intended firing approach. If every preferred approach
+leaves the map or hits a mountain, the CPU approaches from the map interior.
+Visible flank goals keep a cardinal or diagonal firing lane during terrain
+sanitation. Failed fresh steering retries leave enough time for the flood
+planner to progress, including near corners. A close contact also makes the
 computer back away, allowing tanks overlapping after respawn to separate.
 
 | Behavior | Easy | Medium | Hard |
@@ -283,6 +314,9 @@ retain the previous view rather than exposing a half-drawn screen.
 Each gameplay screen has one compact HUD row, 24 terrain rows, narrow outer
 frames, and a two-character divider. No control instructions occupy the live
 map area. The map columns are 1–18 and 21–38; columns 19–20 form the divider.
+The main renderer overlays the yellow sensor marker in the inactive screen
+using a coherent snapshot of the reported sector and bearing before publishing
+the view. It does not read hidden enemy pixel positions for that marker.
 In solo mode, the right view's origin is `(4×sectorX−2, 4×sectorY−4)`, clamped
 to columns 0–23 and rows 0–4, using zero-based coarse-sector indices.
 
@@ -294,72 +328,64 @@ or emulator-only instruction is required.
 
 ## Verification status
 
-Source modules assemble with ca65, and the independent generation audit above
-has passed. Temporary compiled sim65 runs exercise the actual world, game,
-sensor, and AI modules with a stationary human and unmodified physical rules;
-**318 complete matches** across 106 seed samples and all three difficulties
-ended in natural 3–0 computer wins, in 25.06–49.58 simulated seconds. A further
-54 scenarios across six seeds, three difficulties, and three legal moving,
-turning, aiming, and firing input patterns checked pursuit and recovery after
-the CPU's own knockout; no prolonged terrain-throttle stalls remained. These
-runs use a sound stub and exclude rendering, CIA input, and IRQ timing; those
-are checked separately in VICE.
+The released PRG's SHA-256 starts with `0aadca83`. These checks use the updated
+corner starts, larger forests, map-relative keyboard controls, and yellow markers.
 
-Separate compiled checks passed **191 physics assertions**, **770 sensor and
-camera assertions**, and **38 SID-driver assertions**. They cover all eight
-headings and terrain movement rates, body and shell collision, rear damage,
-shields, simultaneous knockouts, cover ranges, mountain lines of sight, camera
-edges, coarse-contact replacement, motion detection, engine distance bands,
-and finite effects. SID-driver checks observe writes in flat RAM; they do not
-simulate electrical SID behavior.
+- The independent generation audit checked **1,003 seeds**, with all terrain,
+  base/apron, bridge, and ford connectivity checks passing. The actual compiled
+  generator matched every model map byte for byte.
+- Compiled keyboard checks passed **4,096 direction/hull/turret/fire cases** and
+  **768 canceled-chord guard checks**, preserving menu state and the input ABI.
+  The unchanged fifteen-switch gameplay/pause matrix passed all **32,768**
+  combinations in an independent electrical-switch model, without ghosting.
+- **191 compiled physics assertions** passed, including the new initial and
+  respawn positions. The unchanged sensor and SID modules retain their prior
+  **770 sensor/camera** and **38 SID-driver** passing assertions. SID-driver
+  checks observe writes in flat RAM; they do not simulate electrical SID behavior.
+- **318 complete compiled CPU matches** across 106 seeds and all difficulties
+  ended in natural 3–0 computer wins, in **27.94–48.72 simulated seconds**.
+  All **54 moving-input scenarios** completed, including 106 human and 10 CPU
+  respawns, without a 300-tick terrain-throttle stall. The longest concealed
+  pursuit ended naturally in overtime at 320.26 seconds. These runs use a sound
+  stub and exclude CIA input, rendering, and IRQ timing.
+- **46 prepared marker/render fixtures** checked **44,160 map, divider, and
+  Color RAM cells** across all bearings, sector positions, unavailable contacts,
+  and solo/PvP views. Rendering changed only the inactive screen before
+  publication. Actual VIC output matched **61,440 gameplay pixels**, including
+  the markers and active sprites, with zero differences.
 
-The shared keyboard's fifteen gameplay/pause switches form a matrix tree.
-An independent electrical-switch model checked all **32,768 combinations**
-without ghosting. VICE input checks inject normalized controls after the actual
-CIA poll; they do not establish Mac keyboard rollover or constitute a physical
-C64 keyboard test.
-
-VICE checks also cover configuration, both readiness paths, rematches, pause,
-new-map setup, and restoration of gameplay assets after the bitmap screen.
-Actual VIC output matches independent pixel references: **64,000 pixels** per
-opening/result screen and **61,440 pixels** for the complete eight-sprite map
-composite, including the divider and outer frames.
-Twelve interrupted rendering transactions checked 24 publications and 34,560
-map/divider/Color RAM cells across the extreme and mixed camera origins, with
-no partial commits. The longest measured completed render took 26.374 ms on
-PAL, including one interrupt.
-
-Busy-frame timing runs use the release PRG, eleven-cell sensor rays, one-node
-flood planning, moving tanks, two shells, new SID notes, screen publication,
-and all eight sprites at the earliest map Y coordinate. The largest measured
-active interrupt in each region is shown below. The allowance adds 237 cycles
-for interrupt entry/return, a main-loop camera snapshot, and held-key decoding.
+Busy-frame VICE timing uses eleven-cell sensor rays, bounded AI planning,
+moving tanks, two shells, new SID notes, screen publication, and all eight
+sprites at the earliest map Y coordinate. The allowance adds **419 cycles**:
+29 for interrupt entry/return, 160 for the main-loop camera/contact snapshot,
+and 230 for held-key decoding and keyboard direction conversion.
 
 | Video region | Cycles per frame | Largest measured IRQ | With allowances | Remaining cycles |
 |---|---:|---:|---:|---:|
-| PAL | 19,656 | 15,881 | 16,118 | 3,538 |
-| Common NTSC | 17,095 | 15,869 | 16,106 | 989 |
-| Early NTSC | 16,768 | 15,872 | 16,109 | 659 |
+| PAL | 19,656 | 15,930 | 16,349 | 3,307 |
+| Common NTSC | 17,095 | 15,928 | 16,347 | 748 |
+| Early NTSC | 16,768 | 15,927 | 16,346 | 422 |
 
 Each regional run checks 120 prepared frames. Active gameplay left no pending
-raster interrupt, and sprite publication completed by raster line 48, before
-the earliest sprite at line 58. Fractional pacing produced exactly the
-expected number of 50 Hz simulation ticks. Bitmap/loading transitions disable
-sprites and deliberately mask interrupts while restoring shared memory; their
-delayed interrupts are recorded separately from live gameplay deadlines.
-These are measured stress cases with conservative allowances, not an
-exhaustive proof of every possible state on every C64.
+raster interrupt, and sprite publication completed by line 48, before the
+earliest sprite at line 58. Fractional pacing produced exactly the expected
+50 Hz simulation ticks. Both corner approach fallbacks and firing-lane
+acceptance/rejection passed. Bitmap/loading transitions disable sprites and
+mask interrupts while restoring shared memory; their delayed interrupts are
+recorded separately from live gameplay deadlines. These are measured stress
+cases with conservative allowances, not an exhaustive proof of every state.
 
-The release PRG completed uninterrupted VICE matches on all three difficulties
-against a stationary human: Easy and Medium took 41 seconds, Hard took 43,
-and each ended in a natural 3–0 computer win. Only setup/start controls were
+The release PRG completed uninterrupted VICE matches against a stationary
+human on Easy, Medium, and Hard in **36, 35, and 32 seconds**, respectively;
+each ended in a natural 3–0 computer win. Only setup/start controls were
 injected; tank coordinates and the program counter were not changed. Host
 emulation speed was accelerated for these runs, then restored to 100%.
 
 The distributed D64 was cold-booted with true 1541 emulation and device-8 traps
-disabled on a PAL/8580 configuration. Its extracted PRG matches the distributed
-PRG byte for byte, and the entire loaded program image matches before starting
-the first match.
+disabled on PAL/8580. Its extracted PRG matches the distributed PRG byte for
+byte, and the entire loaded program image matches before the first match.
 
-**A physical C64 has not been used for this project.** The stock-hardware design
-and emulator validation do not substitute for a run on an actual machine.
+VICE control checks inject normalized inputs after the actual CIA poll, and
+compiled keyboard checks exercise the conversion code. Neither establishes
+Mac keyboard rollover or constitutes a physical C64 keyboard test.
+**A physical C64 has not been used for this project.**

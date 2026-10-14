@@ -271,12 +271,13 @@ ai_tick:
     lda ai_nav_heading
     cmp #$FF
     bne @heading
-    ; An unfinished field can offer no legal waypoint yet. Leave a planning
-    ; tick between failed choices even on Hard, rather than starving flood.
+    ; An unfinished field can offer no legal waypoint yet. Three ticks leave
+    ; room for both an exact-aim retry and flood: two-tick steering and aim
+    ; retries can otherwise alternate forever without expanding the field.
     lda a_steer_wait
-    cmp #2
+    cmp #3
     bcs @heading
-    lda #2
+    lda #3
     sta a_steer_wait
     jmp @heading
 @reserve_aim:
@@ -544,6 +545,16 @@ a_select_goal:
     cmp #16
     bcs @next_probe
     sta a_goal_y
+    ; Sanitation must not move a visible flank onto an impossible gun angle.
+    ; Hidden/coarse search and close-contact backoff have no firing constraint.
+    lda a_new_mode
+    cmp #3
+    bcc @candidate
+    cmp #5
+    bcs @candidate
+    jsr a_firing_lane
+    bcs @next_probe
+@candidate:
     jsr a_goal_node
     jsr a_read_tile
     beq @next_probe
@@ -587,6 +598,39 @@ a_goal_node:
     sta a_node
     lda a_rowshi,y
     sta a_node+1
+    rts
+
+; C clear iff a proposed visible flank is cardinal/diagonal from the sensed
+; contact tile. Called only for a current visible approach; a_choose_flank has
+; refreshed a_flank_x/y from that sensed contact. Bounded constant work within
+; the existing sanitation slice, with no concealed opponent coordinates read.
+a_firing_lane:
+    lda a_goal_x
+    sec
+    sbc a_flank_x
+    bcs :+
+    eor #$ff
+    clc
+    adc #1
+:
+    sta a_tmp
+    lda a_goal_y
+    sec
+    sbc a_flank_y
+    bcs :+
+    eor #$ff
+    clc
+    adc #1
+:
+    beq @lane
+    cmp a_tmp
+    beq @lane
+    lda a_tmp
+    beq @lane
+    sec
+    rts
+@lane:
+    clc
     rts
 
 a_begin_plan:
@@ -1455,10 +1499,17 @@ a_choose_flank:
     cmp #2
     jcc @attempt
 @fallback:
-    lda contact_hull+1
-    clc
-    adc #2
-    and #7
+    ; All preferred rear/side rays can leave a corner of the map. Clamping
+    ; such an offset bends its firing lane (for example SW from tile1,1
+    ; becomes0,3), leaving a visible opponent impossible to aim at. Approach
+    ; horizontally toward the map interior instead: the normal2/3-cell
+    ; offset is always in bounds and remains on a straight sensed-contact ray.
+    lda a_flank_x
+    cmp #16
+    lda #2
+    bcc :+
+    lda #6
+:
     sta a_flank_heading
 @cache:
     lda #1

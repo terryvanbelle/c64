@@ -3,8 +3,9 @@
 ; 32x16. Main/startup only: A/X/Y/flags and private scratch are clobbered.
 ; IDs: 0 water, 1 grass, 2 forest, 3 desert, 4 mountain, 5 reeds/ford,
 ; 6 road, 7 bridge. Three independently bent road routes cross a river at
-; rows 3/8/12; slower fords add routes at 5/10/14. Clear spawn aprons at
-; (3,8)/(28,8) join the roads. No mirror is applied.
+; rows 3/8/12; slower fords add routes at 5/10/14. Clear corner spawn aprons at
+; (1,1)/(30,14) join the roads. Extra broad woodland preserves ponds/mountains;
+; every structural crossing and spawn route is carved afterward. No mirror.
 .setcpu "6502"
 .macpack longbranch
 .import world_seed
@@ -84,6 +85,35 @@ world_generate:
     lda w_feature
     cmp #24
     bne @feature
+    ; Broad rounded woodland adds substantial cover around the small feature
+    ; pockets. Water and mountains survive; later carving owns safe routes.
+    lda #18
+    sta w_feature
+@woodland:
+    jsr w_random_byte
+    and #31
+    cmp #28
+    bcc :+
+    sec
+    sbc #28
+:
+    clc
+    adc #2
+    sta w_center_x
+    jsr w_random_byte
+    and #15
+    cmp #2
+    bcs :+
+    lda #2
+:
+    cmp #14
+    bcc :+
+    lda #13
+:
+    sta w_center_y
+    jsr w_stamp_forest
+    dec w_feature
+    bne @woodland
     ldy #0
 @river:
     ldx #15
@@ -113,7 +143,7 @@ world_generate:
     iny
     cpy #15
     bne @reed_banks
-    ldy #2
+    ldy #1
 @spines:
     ldx #3
     lda #6
@@ -121,7 +151,7 @@ world_generate:
     ldx #28
     jsr w_put
     iny
-    cpy #14
+    cpy #15
     bne @spines
     lda #0
     sta w_path
@@ -208,44 +238,58 @@ world_generate:
     lda w_path
     cmp #3
     jne @crossing
-    ; Each base has a clear apron, with the central spawn column a road.
-    ldy #7
-@apron_row:
-    ldx #2
+    ; Clear 3x3 aprons at opposite diagonal corners. Their middle rows join
+    ; the x3/x28 road spines, so every crossing remains reachable from spawn.
+    ldy #0
+@west_apron_row:
+    ldx #0
 @west_apron:
     lda #1
-    cpx #3
-    bne :+
-    lda #6
-:
     jsr w_put
     inx
-    cpx #5
+    cpx #3
     bne @west_apron
-    ldx #27
+    iny
+    cpy #3
+    bne @west_apron_row
+    ldy #13
+@east_apron_row:
+    ldx #29
 @east_apron:
     lda #1
-    cpx #28
-    bne :+
-    lda #6
-:
     jsr w_put
     inx
-    cpx #30
+    cpx #32
     bne @east_apron
     iny
-    cpy #10
-    bne @apron_row
+    cpy #16
+    bne @east_apron_row
+    ldy #1
+    ldx #1
+@west_link:
+    lda #6
+    jsr w_put
+    inx
+    cpx #4
+    bne @west_link
+    ldy #14
+    ldx #28
+@east_link:
+    lda #6
+    jsr w_put
+    inx
+    cpx #31
+    bne @east_link
     ; Edge representatives survive all road/spawn overwrites.
     jsr w_random_byte
     and #1
     clc
-    adc #2
+    adc #7
     tax
     ldy #0
     lda #0
     jsr w_put
-    ldx #5
+    ldx #10
     lda #4
     jsr w_put
     ldx #25
@@ -337,6 +381,60 @@ w_stamp:
 :
     rts
 
+; Rounded 5x5 woodland (21 cells). Reuse startup-only scratch without adding
+; RAM or changing any live simulation work. Centres stay x2..29/y2..13.
+w_stamp_forest:
+    lda #0
+    sta w_path
+@row:
+    ldx w_path
+    lda w_center_y
+    clc
+    adc w_forest_y,x
+    tay
+    lda w_center_x
+    clc
+    adc w_forest_left,x
+    sta w_turn
+    clc
+    adc w_forest_width,x
+    sta w_end
+    ldx w_turn
+@cell:
+    jsr w_plant_forest
+    inx
+    cpx w_end
+    bne @cell
+    inc w_path
+    lda w_path
+    cmp #5
+    bne @row
+    rts
+
+; Preserve X/Y while replacing only grass/forest/desert, never pond or rock.
+w_plant_forest:
+    stx w_column
+    lda w_rowlo,y
+    clc
+    adc w_column
+    tax
+    lda w_rowhi,y
+    beq @first
+    lda world_tiles+256,x
+    jmp @terrain
+@first:
+    lda world_tiles,x
+@terrain:
+    ldx w_column
+    cmp #0
+    beq @done
+    cmp #4
+    beq @done
+    lda #2
+    jmp w_put
+@done:
+    rts
+
 w_random_byte:
     ldx #8
 @step:
@@ -355,5 +453,8 @@ w_random_byte:
 .segment "RODATA"
 w_features: .byte 2,2,3,4,0,2,3,4,0,2,2,3,4,0,2,3,4,0,2,2,3,2,0,4
 w_crossings: .byte 3,8,12
+w_forest_y: .byte 254,255,0,1,2
+w_forest_left: .byte 255,254,254,254,255
+w_forest_width: .byte 3,5,5,5,3
 w_rowlo: .byte 0,32,64,96,128,160,192,224,0,32,64,96,128,160,192,224
 w_rowhi: .byte 0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1

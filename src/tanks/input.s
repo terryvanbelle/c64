@@ -5,8 +5,14 @@
 ; duel_input_poll updates dual_controls[2]: forward1, reverse2, hull-left4,
 ; hull-right8, fire16, turret-left32, turret-right64.
 ;
-; Keyboard P1: W/S throttle, A/D hull, Q/2 turret, X fire.
-; Keyboard P2: U/N throttle, B/M hull, semicolon/Return turret, period fire.
+; Keyboard P1: WASD = map north/west/south/east, Q/2 turret, X fire.
+; Keyboard P2: UBNM = map north/west/south/east, semicolon/Return turret,
+; period fire. Opposing directions cancel on each axis; two remaining axes
+; select a diagonal. Turn the hull along the shortest route, then drive forward
+; once aligned. An exact half-turn chooses clockwise. The game still owns its
+; ordinary hull-turn gate, physical speed, terrain and collision rules.
+; Fully canceled movement emits neutral forward+reverse (3): the game rejects
+; that throttle pair, while menus still see that gameplay keys are being held.
 ; These fourteen gameplay switches form a matrix tree. Key 1 adds its final
 ; leaf, providing an unambiguous common keyboard pause without mapped ghosts.
 ; Use VICE's default symbolic map: its semicolon is physical C64 PA6/PB2.
@@ -36,6 +42,7 @@
 .export duel_input_poll, duel_menu_poll
 .export dual_controls, duel_controls, tank_controls
 .export input_mode, menu_controls, menu_difficulty
+.import hull
 
 CIA1_PA=$dc00
 CIA1_PB=$dc01
@@ -56,6 +63,12 @@ joy_button_previous: .res 2
 
 .segment "RODATA"
 input_columns: .byte $fe,$fd,$fb,$f7,$ef,$df,$bf,$7f
+; Index: raw map-direction nibble N1/S2/W4/E8. Opposite axes cancel.
+keyboard_headings:
+    .byte $ff,0,4,$ff,6,7,5,6,2,1,3,2,$ff,0,4,$ff
+; Index: (desired heading - current hull) & 7. Forward only when aligned.
+keyboard_turns:
+    .byte 1,8,8,8,8,4,4,4
 
 .macro ADD_KEY column, rowbit, destination, control
     lda input_matrix+column
@@ -65,6 +78,36 @@ input_columns: .byte $fe,$fd,$fb,$f7,$ef,$df,$bf,$7f
     ora #control
     sta destination
 :
+.endmacro
+
+; Preserve turret/fire, convert only the map-direction nibble. No extra state:
+; every poll responds to the current hull, including the first resumed tick.
+; Neutral opposing throttle keeps the engine's held-control admin gate intact.
+.macro MAP_DIRECTION player
+    .local idle, done
+    lda dual_controls+player
+    and #15
+    tax
+    lda dual_controls+player
+    and #$70
+    sta dual_controls+player
+    lda keyboard_headings,x
+    bmi idle
+    sec
+    sbc hull+player
+    and #7
+    tax
+    lda keyboard_turns,x
+    ora dual_controls+player
+    sta dual_controls+player
+    jmp done
+idle:
+    cpx #0
+    beq done
+    lda dual_controls+player
+    ora #3
+    sta dual_controls+player
+done:
 .endmacro
 
 .segment "CODE"
@@ -187,6 +230,8 @@ input_columns: .byte $fe,$fd,$fb,$f7,$ef,$df,$bf,$7f
     ADD_KEY 6,$04,dual_controls+1,32    ; semicolon
     ADD_KEY 0,$02,dual_controls+1,64    ; Return
     ADD_KEY 7,$01,menu_controls,1       ; common keyboard pause: 1
+    MAP_DIRECTION 0
+    MAP_DIRECTION 1
     rts
 .endproc
 

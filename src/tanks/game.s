@@ -109,7 +109,7 @@ g_spawn:
     sta tank_xlo,x
     lda g_spawn_xhi,x
     sta tank_xhi,x
-    lda #128
+    lda g_spawn_y,x
     sta tank_y,x
     lda g_spawn_heading,x
     sta hull,x
@@ -830,9 +830,10 @@ g_win:
     jmp duel_sound_event
 
 .segment "RODATA"
-g_spawn_xlo:    .byte 48,192
+g_spawn_xlo:    .byte 16,224
 g_spawn_xhi:    .byte 0,1
-g_spawn_heading:.byte 2,6
+g_spawn_y:      .byte 16,224
+g_spawn_heading:.byte 3,7
 g_xsign:       .byte 0,1,1,1,0,$ff,$ff,$ff
 g_ysign:       .byte $ff,$ff,0,1,1,1,0,$ff
 g_speed_low:   .byte 0,128,64,96,0,64,0,0

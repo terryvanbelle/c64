@@ -9,12 +9,17 @@ line of sight, and coarse sensor contacts make finding the opponent part of the
 fight. First to three knockouts wins, with a three-minute deadline and sudden
 death for ties.
 
+Tanks start near opposite diagonal corners at tiles **(1,1)** and **(30,14)**.
+Forest averages **30.46%** of audited maps, up from **6.56%**. A yellow diamond
+marks the reported enemy sector; an edge arrow gives its rough bearing when
+that sector is outside the view.
+
 Play two humans locally or choose an **Easy / Medium / Hard** computer opponent.
 In computer mode the right pane shows a coarse contact map, keeping hidden enemy
 positions concealed. Human matches give each player a following **9×12-tile**,
 144×192-pixel view of the 32×16-tile world, with one compact HUD row above the
-maps. The original bitmap opening screen holds all game
-configuration and control help, and returns after a match.
+maps. The original bitmap opening screen holds all game configuration and
+control help, and returns after a match.
 
 Two distinct low SID engines respond to actual movement and hull turns. A
 moving opponent becomes louder nearby; parked tanks and turret-only aiming
@@ -22,13 +27,19 @@ stay quiet. Cannon fire, impacts, knockouts, and victory have original effects.
 
 ![Ironveil opening screen in VICE](docs/ironveil-title.png)
 
-**Keyboard:** cyan uses **W/S**, **A/D**, **Q/2**, **X** for throttle, hull,
-turret, and fire. Gold uses **U/N**, **B/M**, **semicolon/Return**, **period**.
-**1** pauses keyboard play. **Joysticks:** cyan uses **port 2**, gold **port 1**;
+**Keyboard:** cyan uses **WASD** and gold uses **U/B/N/M** for map directions.
+Hold a direction to turn the hull toward it, then drive; diagonals work and
+opposing directions cancel on each axis. Cyan uses **Q/2 + X** for turret/fire;
+gold uses **semicolon/Return + period**. **1** pauses keyboard play.
+
+**Joysticks:** cyan uses **port 2**, gold **port 1**. Up/down drive
+forward/reverse and left/right turn the hull;
 hold the button and move left/right to aim, then release the button to fire.
+
 Choose **K/J** for keyboard/joysticks, **H/C** for human/computer, or
 **1/2/3** for Easy/Medium/Hard on the title or result screen. **F1** creates a
-new map. Both humans ready with fire; only cyan needs to ready against the CPU.
+new map from setup or while paused with gameplay controls released. Both humans
+ready with fire; only cyan needs to ready against the CPU.
 On joysticks, press and release the button to ready.
 
 ![Ironveil rendered by VICE](docs/ironveil.png)

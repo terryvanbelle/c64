@@ -10,6 +10,7 @@
 .import seconds_left,sudden_death
 .import ai_init,ai_tick,sense_init,sense_tick
 .import camera_x,camera_y,enemy_visible,bearing,range_band,zone_x,zone_y,terrain_here
+.import contact_known
 .import duel_input_poll,duel_menu_poll,dual_controls,input_mode,menu_controls,menu_difficulty
 .import duel_sound_init,duel_sound_tick,duel_sound_silence,duel_sound_motion_sync
 .import __BSS_SIZE__,__WORK_SIZE__,__CODE_RUN__,__CODE_SIZE__,__RODATA_RUN__,__RODATA_SIZE__
@@ -241,17 +242,29 @@ main_loop:
     bne @draw
     lda wanted_cam_y+1
     cmp active_cam_y+1
-    beq main_loop
+    bne @draw
+    ; A parked viewer must still see the next coarse sensor report. Main
+    ; compares the last completed snapshot; publication gates another draw.
+    ldx #1
+@signal_changed:
+    lda contact_known,x
+    cmp render_known,x
+    bne @draw
+    lda zone_x,x
+    cmp render_zone_x,x
+    bne @draw
+    lda zone_y,x
+    cmp render_zone_y,x
+    bne @draw
+    lda bearing,x
+    cmp render_bearing,x
+    bne @draw
+    dex
+    bpl @signal_changed
+    jmp main_loop
 @draw:
     sei
-    ldx #1
-@snap:
-    lda wanted_cam_x,x
-    sta render_cam_x,x
-    lda wanted_cam_y,x
-    sta render_cam_y,x
-    dex
-    bpl @snap
+    jsr snapshot_view
     cli
     lda active_screen
     eor #1
@@ -262,6 +275,27 @@ render_end:
     lda #1
     sta frame_ready
     jmp main_loop
+
+; Main-only coherent camera/contact capture. The sensor's sector and bearing
+; are the only position data used by markers, including in the solo pane.
+snapshot_view:
+    ldx #1
+@snap:
+    lda wanted_cam_x,x
+    sta render_cam_x,x
+    lda wanted_cam_y,x
+    sta render_cam_y,x
+    lda contact_known,x
+    sta render_known,x
+    lda zone_x,x
+    sta render_zone_x,x
+    lda zone_y,x
+    sta render_zone_y,x
+    lda bearing,x
+    sta render_bearing,x
+    dex
+    bpl @snap
+    rts
 enter_battle:
     sei
     lda #$0b
@@ -397,6 +431,7 @@ prepare_world:
     dex
     bpl @team
     jsr choose_display_cameras
+    jsr snapshot_view
     ldx #1
 @cam:
     lda wanted_cam_x,x
@@ -1478,10 +1513,110 @@ render_views:
 :
     dec render_rows
     bne @row
+    jsr render_marker
     inc render_view
     lda render_view
     cmp #2
     bne @view
+    rts
+
+; Overlay four character cells only in the inactive screen. All map cells
+; retain fixed multicolor Color RAM15, so no IRQ palette copy is necessary.
+render_marker:
+    ldx render_view
+    lda computer_player2
+    beq :+
+    ldx #0                    ; solo contact pane uses human observations
+:
+    lda render_known,x
+    bne :+
+    rts
+:
+    lda render_bearing,x
+    and #7
+    sta marker_heading
+    ldy render_view
+    lda render_cam_x,y
+    asl
+    sta marker_x
+    lda render_zone_x,x
+    asl
+    asl
+    asl
+    clc
+    adc #3                    ; coarse top-left24, centre32, in 8px cells
+    sec
+    sbc marker_x
+    bcc @edge
+    cmp #17                   ; two-cell marker stays wholly inside the pane
+    bcs @edge
+    sta marker_x
+    lda render_cam_y,y
+    asl
+    sta marker_y
+    lda render_zone_y,x
+    asl
+    asl
+    asl
+    clc
+    adc #3
+    sec
+    sbc marker_y
+    bcc @edge
+    cmp #23
+    bcs @edge
+    sta marker_y
+    lda #250                  ; a sector diamond is deliberately approximate
+    bne @glyph
+@edge:
+    ldx marker_heading
+    lda marker_edge_x,x
+    sta marker_x
+    lda marker_edge_y,x
+    sta marker_y
+    txa
+    asl
+    asl
+@glyph:
+    sta marker_glyph
+    lda marker_y
+    tay
+    lda marker_rowlo,y
+    sta dst
+    lda marker_rowhi,y
+    sta dst+1
+    lda render_screen
+    asl
+    asl
+    clc
+    adc #$80
+    adc dst+1
+    sta dst+1
+    ldx render_view
+    lda marker_x
+    clc
+    adc view_column,x
+    clc
+    adc dst
+    sta dst
+    bcc :+
+    inc dst+1
+:
+    ldy #0
+    lda marker_glyph
+    sta (dst),y
+    iny
+    clc
+    adc #1
+    sta (dst),y
+    ldy #40
+    clc
+    adc #1
+    sta (dst),y
+    iny
+    clc
+    adc #1
+    sta (dst),y
     rts
 
 hud_dynamic:
@@ -1721,9 +1856,9 @@ setup_levels: .byte "1 EASY  2 MEDIUM  3 HARD",0
 setup_easy: .byte "1 EASY",0
 setup_medium: .byte "2 MEDIUM",0
 setup_hard: .byte "3 HARD",0
-setup_p1: .byte "P1 W/S A/D Q/2 X",0
-setup_p2: .byte "P2 U/N B/M ;/RET .",0
-setup_key_extra: .byte "1 PAUSE   F1 NEW MAP",0
+setup_p1: .byte "P1 WASD MOVE Q/2 AIM",0
+setup_p2: .byte "P2 UBNM MOVE ;/RET AIM",0
+setup_key_extra: .byte "X/. FIRE 1 PAUSE F1 MAP",0
 setup_stick_drive: .byte "STICK DRIVE/TURN",0
 setup_stick_aim: .byte "HOLD FIRE + L/R AIM",0
 setup_stick_extra: .byte "RELEASE:SHOT ESC:PAUSE",0
@@ -1743,6 +1878,16 @@ slot_actor: .byte 0,1,1,0,0,1,1,0
 slot_enemy: .byte 0,1,0,1
 view_left: .byte 32,192
 view_column: .byte 1,21
+marker_edge_x: .byte 8,16,16,16,8,0,0,0
+marker_edge_y: .byte 0,0,10,22,22,22,10,0
+marker_rowlo:
+    .repeat 24,I
+        .byte <((I+1)*40)
+    .endrepeat
+marker_rowhi:
+    .repeat 24,I
+        .byte >((I+1)*40)
+    .endrepeat
 sprite_bits: .byte 1,2,4,8,16,32,64,128
 hud_offsets: .byte 0,20
 compass: .byte "N NE ESE SSW WNW"
@@ -1813,9 +1958,17 @@ wanted_cam_x: .res 2
 wanted_cam_y: .res 2
 render_cam_x: .res 2
 render_cam_y: .res 2
+render_known: .res 2
+render_zone_x: .res 2
+render_zone_y: .res 2
+render_bearing: .res 2
 render_screen: .res 1
 render_view: .res 1
 render_rows: .res 1
+marker_heading: .res 1
+marker_x: .res 1
+marker_y: .res 1
+marker_glyph: .res 1
 map_row: .res 1
 map_col: .res 1
 map_kind: .res 1
