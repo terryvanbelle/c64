@@ -12,22 +12,25 @@
 
 An original single-player puzzle game about treating **movement as an object**.
 Borrow the motion of brass bells, lend it to luminous pearls, and recover it
-when they reach their nests. Ten authored rooms introduce reflections, mirrors,
-different speeds, and exchanges made halfway through a journey. You control
-when the world advances and have unlimited time to think.
+when they reach their nests. **64 authored rooms** begin with ten introductory
+lessons, then explore direction dependencies, shared journeys and efficient
+exchanges. Later rooms have an exchange allowance; **Practice** removes it.
+You control when the world advances and have unlimited time to think.
 
 ![Borrowed Motion opening screen in VICE](docs/borrowed-motion-title.png)
 
 **A/D** selects an artifact; **Space** exchanges its motion with your pocket.
 **Tap W** for one step or **hold W** to keep stepping. Each step advances all
 moving artifacts together; fast motion can cover two tiles. **S** undoes up to
-32 exchanges or steps; **R** restarts, **H** opens help, and **M** toggles sound.
+64 actions (exchanges or steps); **R** restarts, **H** opens help, and **M** toggles sound.
 A pearl completes its journey only when it is still on a nest. A full pocket
 swaps motions, so it must be emptied before it can brake another pearl.
 
 A joystick in **port 2** uses left/right to select, fire to exchange, up to
-step, and down to undo. Press **Return or fire** to begin. Restored rooms unlock
-for replay during the current session.
+step, and down to undo. On the title, **A/D** chooses any room, **W/S** jumps
+between chapters, and **Q** switches Challenge / Practice. Press **Return or
+fire** to begin. **Already finished the original game? Press W once on the
+opening title to select room 11.** All rooms remain accessible after a reset.
 
 ![Borrowed Motion rendered by VICE](docs/borrowed-motion.png)
 

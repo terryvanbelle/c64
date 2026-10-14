@@ -49,6 +49,7 @@ class Level:
     actors: tuple[Actor, ...]
     solution: tuple[tuple[str, int], ...]
     lesson: str
+    swap_limit: int = 0  # Zero is unrestricted; Practice also removes limits.
 
     @property
     def nests(self):
@@ -180,30 +181,38 @@ def replay(level, actions=None):
 
 
 def solve_breadth_first(level, max_states=250000):
-    """Independent bounded solver; shortest count of swaps plus individual beats.
+    """Independent bounded solver; fewest actions within the room's allowance.
 
     This is a correctness tool, not a claim that the study target is optimal.
     Return (solution, explored), or (None, explored) when the bound is reached.
+    An unrestricted room does not need exchange-count state. For a restricted
+    room, retain that count: an otherwise identical position with fewer spent
+    exchanges has different future options.
     """
     start = initial_state(level)
-    frontier = deque([start])
-    previous = {start: None}
+    first = (start, 0)
+    frontier = deque([first])
+    previous = {first: None}
     while frontier and len(previous) <= max_states:
-        state = frontier.popleft()
+        node = frontier.popleft()
+        state, spent = node
         if won(state):
             result = []
-            while previous[state] is not None:
-                state, action = previous[state]
+            while previous[node] is not None:
+                node, action = previous[node]
                 result.append(action)
             return tuple(reversed(result)), len(previous)
         choices = [(('wind', 1), wind(level, state))]
-        choices += [(('swap', i), swap(level, state, i))
-                    for i, a in enumerate(state.actors)
-                    if a.active and a.motion != state.pocket]
+        if not level.swap_limit or spent < level.swap_limit:
+            choices += [(('swap', i), swap(level, state, i))
+                        for i, a in enumerate(state.actors)
+                        if a.active and a.motion != state.pocket]
         for action, successor in choices:
-            if successor not in previous:
-                previous[successor] = (state, action)
-                frontier.append(successor)
+            used = spent + int(action[0] == 'swap') if level.swap_limit else 0
+            following = (successor, used)
+            if following not in previous:
+                previous[following] = (node, action)
+                frontier.append(following)
     return None, len(previous)
 
 
@@ -226,7 +235,7 @@ def make_level(name, hint, actors, nests, solution, lesson, *, rectangles=None,
     return Level(name, hint, tuple(board), tuple(actors), tuple(solution), lesson)
 
 
-def authored_levels():
+def introductory_levels():
     p = lambda x, y, motion=0: Actor(0, x, y, motion)
     b = lambda x, y, motion=0: Actor(1, x, y, motion)
     return [
@@ -308,6 +317,31 @@ def authored_levels():
     ]
 
 
+def authored_levels():
+    """The original course, followed by six nine-room challenge chapters."""
+    from motion_chapter_middle import middle_levels
+    from motion_chapter_expert import expert_levels
+    from motion_chapter_finale import finale_levels
+
+    introductory = introductory_levels()
+    middle = middle_levels()
+    expert = expert_levels()
+    finale = finale_levels()
+    assert tuple(map(len, (introductory, middle, expert, finale))) == (10, 27, 18, 9)
+    levels = introductory + middle + expert + finale
+    assert len(levels) == 64
+    result = []
+    for number, level in enumerate(levels, 1):
+        if number > 10:
+            # An attainable allowance, not a claim of a minimum solution.
+            # The first challenge chapter allows one exploratory extra swap.
+            allowance = sum(op == 'swap' for op, _ in level.solution)
+            allowance += int(number <= 19)
+            level = replace(level, swap_limit=allowance)
+        result.append(level)
+    return result
+
+
 def screen_codes(text, width):
     assert text == text.upper() and len(text) <= width, (text, len(text), width)
     assert all(32 <= ord(c) <= 95 for c in text)
@@ -329,6 +363,9 @@ def validate_level(level):
     assert not won(start)
     bells = sum(a.kind == 1 for a in start.actors)
     assert moving_tokens(start) <= bells + 1, "Not enough final motion storage"
+    assert 0 <= level.swap_limit < 100, "Two-digit exchange allowance"
+    if level.swap_limit:
+        assert sum(op == 'swap' for op, _ in level.solution) <= level.swap_limit
     final, trace = replay(level)
     assert won(final), (level.name, state_json(final))
     # Advancing time alone must never make a moving pearl settle.
@@ -371,17 +408,25 @@ def check_rule_examples():
 
 def write_tables(levels):
     tables = {
-        "level_maps": [n for level in levels for n in level.board],
+        # Low nibble first. Decode just the active map into the existing buffer.
+        "level_maps": [level.board[i] | (level.board[i + 1] << 4)
+                       for level in levels for i in range(0, WIDTH * HEIGHT, 2)],
         "level_actor_count": [len(level.actors) for level in levels],
+        # Per-room records use 16-bit pointers, avoiding the old 42-room limit
+        # imposed by an eight-bit index into six-slot, field-separated tables.
+        "level_actors": [n for level in levels for n in
+                         ([v for a in level.actors for v in
+                           (a.kind, a.x, a.y, a.motion)] +
+                          [0] * (4 * (MAX_ACTORS - len(level.actors))))],
+        "level_swap_limits": [level.swap_limit for level in levels],
     }
-    for field, attr in (("type", "kind"), ("x", "x"), ("y", "y"), ("motion", "motion")):
-        tables[f"level_actor_{field}"] = [n for level in levels for n in
-            ([getattr(a, attr) for a in level.actors] + [0] * (MAX_ACTORS - len(level.actors)))]
     tables["level_names"] = [n for level in levels for n in screen_codes(level.name, 24)]
     tables["level_hints"] = [n for level in levels for n in screen_codes(level.hint, 38)]
     tables["level_par_swaps"] = [sum(op == 'swap' for op, _ in level.solution) for level in levels]
     lines = ["; Generated by tools/generate_motion_levels.py. Do not hand edit.",
-             '; Fixed widths: map162, actors6, names24, hints38.', '.segment "RODATA"']
+             '; Fixed widths: packed map81, actors24, names24, hints38.',
+             f'.assert ROOMS = {len(levels)}, error, "Campaign length mismatch"',
+             '.segment "RODATA"']
     lines += [".export " + name for name in tables]
     for name, data in tables.items():
         lines += ["", name + ":"]
@@ -399,7 +444,7 @@ def main():
     parser.add_argument("--max-states", type=int, default=250000)
     args = parser.parse_args()
     levels = authored_levels()
-    assert len(levels) == 10
+    assert len({level.name for level in levels}) == len(levels)
     check_rule_examples()
     records = []
     for number, level in enumerate(levels, 1):
@@ -413,12 +458,13 @@ def main():
             "nests": [{"x": x, "y": y} for x, y in level.nests],
             "actors": state_json(initial_state(level))["actors"],
             "study_target_swaps": sum(op == 'swap' for op, _ in level.solution),
+            "swap_limit": level.swap_limit,
             "solution": [{op: value} for op, value in level.solution],
             "solution_trace": trace,
         }
         records.append(record)
         print(f"{number:2}. {level.name:24} {record['study_target_swaps']} exchanges, "
-              f"{sum(n for op, n in level.solution if op == 'wind')} beats: solved")
+              f"{sum(n for op, n in level.solution if op == 'wind')} steps: solved")
     if args.solve is not None:
         for number in args.solve or [1, 2]:
             assert 1 <= number <= len(levels)
@@ -429,7 +475,7 @@ def main():
                 assert won(replay(levels[number - 1], solution)[0])
                 print(f"BFS room {number}: solved in {len(solution)} actions; {explored} states")
     write_tables(levels)
-    document = {"schema_version": 1, "game": "Borrowed Motion", "width": WIDTH,
+    document = {"schema_version": 2, "game": "Borrowed Motion", "width": WIDTH,
                 "height": HEIGHT, "max_actors": MAX_ACTORS,
                 "tiles": {"floor": 0, "wall": 1, "slash": 2, "backslash": 3,
                           "nest": 4, "slowglass": 5},

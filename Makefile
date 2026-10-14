@@ -155,7 +155,7 @@ $(BUILD_DIR)/motion:
 $(BUILD_DIR)/motion/assets.inc: tools/generate_motion_assets.py tools/generate_atlas_assets.py | $(BUILD_DIR)/motion
 	$(PYTHON) $<
 
-$(BUILD_DIR)/motion/levels.inc: tools/generate_motion_levels.py | $(BUILD_DIR)/motion
+$(BUILD_DIR)/motion/levels.inc: tools/generate_motion_levels.py tools/motion_chapter_middle.py tools/motion_chapter_expert.py tools/motion_chapter_finale.py | $(BUILD_DIR)/motion
 	$(PYTHON) $<
 
 $(BUILD_DIR)/motion/%.o: src/motion/%.s $(BUILD_DIR)/motion/assets.inc $(BUILD_DIR)/motion/levels.inc

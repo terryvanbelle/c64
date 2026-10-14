@@ -4,7 +4,7 @@
 Inputs are injected after the actual CIA poll, at controls_sampled. This checks
 the compiled game, not the physical keyboard/joystick scan or human enjoyment.
 No program counter override or subroutine call injection is used. The default
-run first checks an untouched title and loaded PRG, then plays all ten authored
+run first checks an untouched title and loaded PRG, then plays all authored
 solutions. Optional prepared fixtures overwrite documented game state to cover
 physics boundaries and history capacity separately from normal progression.
 
@@ -234,16 +234,16 @@ class Validator:
             self.check(won(expected), "reference solution reaches completion", room + 1)
             final = self.state()
             self.check(final["scene"] == 3, "compiled room completion", final)
-            self.check(final["unlocked"] == min(room + 1, 9), "unlock progression", final)
+            self.check(final["unlocked"] == min(room + 1, len(levels) - 1), "unlock progression", final)
             self.level_results.append({"room": room + 1, "name": level.name,
                                        "model_comparisons": actions, "swaps": final["swaps"],
                                        "beats": final["wind_count"], "undo_round_trips": 2})
             print(f"Room {room + 1}: solution and undo passed ({actions} actions)", flush=True)
             self.idle(31)
             self.tick(menu=1)
-        self.check(self.state()["scene"] == 4, "ten rooms reach ending")
+        self.check(self.state()["scene"] == 4, "complete campaign reaches ending")
         self.tick(16, pressed=16)
-        self.check(self.state()["scene"] == 0 and self.state()["unlocked"] == 9,
+        self.check(self.state()["scene"] == 0 and self.state()["unlocked"] == len(levels) - 1,
                    "ending returns to unlocked title")
         self.tick(8, pressed=8)
         self.check(self.state()["room_index"] == 1, "unlocked title selection")
@@ -252,7 +252,7 @@ class Validator:
         self.tick(menu=2)
         self.match(initial_state(levels[1]), "restart restores authored room")
         self.check(self.state()["undo_count"] == 0, "restart clears history")
-        self.log.append("All ten solutions, help, undo, ending, unlock and restart passed.")
+        self.log.append(f"All {len(levels)} solutions, help, undo, ending, progression and restart passed.")
 
     def write(self, name, data):
         if isinstance(data, int):
@@ -374,20 +374,20 @@ class Validator:
         self.idle()             # Release R before stepping the restarted room.
         snapshots = []
         expected = initial_state(authored_levels()[0])
-        for _ in range(40):
+        for _ in range(80):
             snapshots.append(self.state())
             self.beat()
             expected = wind(authored_levels()[0], expected)
             self.match(expected, "history wind")
-        self.check(self.state()["undo_count"] == 32, "history capacity is bounded")
-        for snapshot in reversed(snapshots[-32:]):
+        self.check(self.state()["undo_count"] == 64, "history capacity is bounded")
+        for snapshot in reversed(snapshots[-64:]):
             self.undo(snapshot)
         self.check(self.state()["undo_count"] == 0, "all retained history restored")
         final = self.state()
         self.idle(8)
         self.tick(2, pressed=2)
         self.check(self.state()["snapshot"] == final["snapshot"], "empty undo is harmless")
-        self.log.append("40 beats overflowed the 32-slot undo ring; all retained records restored.")
+        self.log.append("80 steps overflowed the 64-slot undo ring; all retained records restored.")
 
 
 def main():

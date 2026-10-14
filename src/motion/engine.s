@@ -18,16 +18,18 @@
 .export tick_ready,late_ticks,wind_begin,swap_motion,undo_one,load_room
 .export game_tick,advance_one,probe_x,probe_y,probe_motion
 .export controls_buffer,help_return,best_swaps
+.export practice_mode,room_swap_limit
 
 SCREEN=$8000
 FONT=$8800
 SPRITES=$a000
 COLOR=$d800
-ROOMS=10
+ROOMS=64
+CHAPTERS=7
 WIDTH=18
 HEIGHT=9
 ACTORS=6
-HISTORY=32
+HISTORY=64
 ANIM_TICKS=16
 
 .repeat 26,I
@@ -55,6 +57,9 @@ room_index: .res 1
 unlocked: .res 1
 help_return: .res 1
 best_swaps: .res ROOMS
+practice_mode: .res 1         ; title Q: unrestricted rehearsal of any room
+room_swap_limit: .res 1       ; zero in lessons and Practice; undo refunds swaps
+chapter_index: .res 1
 hud_dirty: .res 1
 select_repeat: .res 1
 undo_repeat: .res 1
@@ -102,7 +107,6 @@ loop_actor: .res 1
 loop_row: .res 1
 loop_col: .res 1
 loop_tile: .res 1
-level_offset: .res 1
 cell_kind: .res 1
 cell_x: .res 1
 cell_y: .res 1
@@ -131,6 +135,7 @@ preview_valid: .res 1
 
 .segment "WORK"
 undo_buffer: .res HISTORY*64
+.assert HISTORY=64,error,"History uses exactly the $c000-$cfff work area"
 
 .macro TEXT label,row,col,color
     lda #<label
@@ -359,6 +364,38 @@ tick_done:
 .endproc
 
 .proc title_tick
+    lda menu_pressed
+    and #32
+    beq @chapters
+    lda practice_mode
+    eor #1
+    sta practice_mode
+    jsr title_mode
+@chapters:
+    jsr find_chapter
+    lda input_pressed
+    and #1
+    beq @previous_chapter
+    ldx chapter_index
+    cpx #CHAPTERS-1
+    bcs @left
+    inx
+    lda chapter_starts,x
+    sta room_index
+    jsr title_room_name
+    jmp @start
+@previous_chapter:
+    lda input_pressed
+    and #2
+    beq @left
+    ldx chapter_index
+    beq @left
+    dex
+    lda chapter_starts,x
+    sta room_index
+    jsr title_room_name
+    jmp @start
+@left:
     lda input_pressed
     and #4
     beq @right
@@ -371,7 +408,7 @@ tick_done:
     and #8
     beq @start
     lda room_index
-    cmp unlocked
+    cmp #ROOMS-1              ; any room can be resumed after a cold start
     bcs @start
     inc room_index
     jsr title_room_name
@@ -590,33 +627,53 @@ tick_done:
     lda map_hi,x
     sta src+1
     ldy #0
+    ldx #0
 @map:
     lda (src),y
-    sta room_map,y
+    sta scratch
+    and #$0f
+    sta room_map,x
+    inx
+    lda scratch
+    lsr
+    lsr
+    lsr
+    lsr
+    sta room_map,x
+    inx
     iny
-    cpy #WIDTH*HEIGHT
+    cpy #WIDTH*HEIGHT/2
     bne @map
+    ldx room_index
+    lda level_swap_limits,x
+    ldy practice_mode
+    beq :+
+    lda #0
+:
+    sta room_swap_limit
     lda level_actor_count,x
     sta actor_count
-    txa
-    asl
-    sta level_offset
-    asl
-    clc
-    adc level_offset
-    tay
+    lda actors_lo,x
+    sta src
+    lda actors_hi,x
+    sta src+1
+    ldy #0
     ldx #0
 @actors:
-    lda level_actor_type,y
+    lda (src),y
     sta actor_type,x
-    lda level_actor_x,y
+    iny
+    lda (src),y
     sta actor_x,x
     sta old_x,x
-    lda level_actor_y,y
+    iny
+    lda (src),y
     sta actor_y,x
     sta old_y,x
-    lda level_actor_motion,y
+    iny
+    lda (src),y
     sta actor_motion,x
+    iny
     lda #0
     sta fast_pending,x
     cpx actor_count
@@ -628,7 +685,6 @@ tick_done:
     lda #1
 @inactive:
     sta actor_active,x
-    iny
     inx
     cpx #ACTORS
     bne @actors
@@ -720,6 +776,13 @@ tick_done:
     lda actor_motion,x
     cmp pocket
     beq @done                    ; swapping equal motions is a harmless no-op
+    lda room_swap_limit
+    beq @exchange
+    cmp swaps
+    bne @exchange
+    lda #5                       ; no state change or undo record when exhausted
+    jmp sound_event
+@exchange:
     jsr push_undo
     ldx selected
     lda actor_motion,x
@@ -1301,12 +1364,26 @@ tick_done:
     sta COLOR+880+2,y
     dey
     bpl @name
+    lda room_swap_limit
+    bne @limited
     TEXT swaps_label,22,28,15
     lda swaps
     jsr decimal_three
     stx SCREEN+880+34
     sty SCREEN+880+35
     sta SCREEN+880+36
+    jmp @complete
+@limited:
+    TEXT swaps_limited,22,28,15
+    lda swaps
+    jsr decimal_two
+    stx SCREEN+880+34
+    sta SCREEN+880+35
+    lda room_swap_limit
+    jsr decimal_two
+    stx SCREEN+880+37
+    sta SCREEN+880+38
+@complete:
     lda scene
     cmp #3
     bne @lesson
@@ -1318,6 +1395,21 @@ tick_done:
     ; Undo can return from the room-clear screen; restore the action labels.
     TEXT controls_line,23,1,15
     TEXT tools_line,24,1,12
+    lda room_swap_limit
+    beq @tutorial
+    cmp swaps
+    bne @challenge_hint
+    TEXT exhausted_line,2,1,7
+    rts
+@challenge_hint:
+    lda room_index
+    cmp #10
+    jne @done
+    lda swaps
+    jne @done
+    TEXT challenge_intro,2,1,3
+    rts
+@tutorial:
     ; Include selection in the first-room lesson: Space acts on the selected
     ; artifact even when the pearl has just arrived on its nest.
     lda room_index
@@ -1595,9 +1687,8 @@ tick_done:
     sta $d011
     jsr copy_title
     TEXT title_controls,20,2,15
-    TEXT title_time,21,2,15
+    jsr title_mode
     TEXT title_start,23,3,1
-    TEXT title_extra,24,2,12
     jsr title_room_name
     lda #$1b
     sta $d011
@@ -1624,6 +1715,55 @@ tick_done:
     jsr decimal_two
     stx SCREEN+880+5
     sta SCREEN+880+6
+    jsr title_mode
+    jsr find_chapter
+    ldx chapter_index
+    lda chapter_lo,x
+    sta textptr
+    lda chapter_hi,x
+    sta textptr+1
+    lda #<(SCREEN+24*40+2)
+    sta dst
+    lda #>(SCREEN+24*40+2)
+    sta dst+1
+    lda #<(COLOR+24*40+2)
+    sta colptr
+    lda #>(COLOR+24*40+2)
+    sta colptr+1
+    lda #12
+    sta text_color
+    jmp print_text
+.endproc
+.proc find_chapter
+    ldx #CHAPTERS-1
+@find:
+    lda room_index
+    cmp chapter_starts,x
+    bcs @found
+    dex
+    bne @find
+@found:
+    stx chapter_index
+    rts
+.endproc
+.proc title_mode
+    lda practice_mode
+    bne @practice
+    ldx room_index
+    lda level_swap_limits,x
+    beq @lesson
+    TEXT title_challenge,21,2,7
+    ldx room_index
+    lda level_swap_limits,x
+    jsr decimal_two
+    stx SCREEN+21*40+13
+    sta SCREEN+21*40+14
+    rts
+@lesson:
+    TEXT title_lessons,21,2,7
+    rts
+@practice:
+    TEXT title_practice,21,2,3
     rts
 .endproc
 .proc show_help
@@ -1635,6 +1775,12 @@ tick_done:
     sta $d011
     jsr clear_screen
     TEXT heading,0,1,7
+    lda room_index
+    clc
+    adc #1
+    jsr decimal_two
+    stx SCREEN+30
+    sta SCREEN+31
     TEXT help_a,2,1,1
     TEXT help_b,3,1,3
     TEXT help_c,5,1,7
@@ -1647,9 +1793,17 @@ tick_done:
     TEXT help_j,15,1,15
     TEXT help_k,16,1,15
     TEXT help_touch,17,1,15
+    TEXT help_n,18,1,3
     TEXT help_l,19,1,12
     TEXT help_m,20,1,12
-    TEXT help_n,22,1,3
+    lda practice_mode
+    bne @practice
+    TEXT help_budget,22,1,3
+    jmp @refund
+@practice:
+    TEXT help_practice,22,1,3
+@refund:
+    TEXT help_refund,23,1,3
     TEXT help_close,24,1,1
     lda #$1b
     sta $d011
@@ -1884,11 +2038,19 @@ board_hi:
 .endrepeat
 map_lo:
 .repeat ROOMS,I
-    .byte <(level_maps+I*162)
+    .byte <(level_maps+I*81)
 .endrepeat
 map_hi:
 .repeat ROOMS,I
-    .byte >(level_maps+I*162)
+    .byte >(level_maps+I*81)
+.endrepeat
+actors_lo:
+.repeat ROOMS,I
+    .byte <(level_actors+I*24)
+.endrepeat
+actors_hi:
+.repeat ROOMS,I
+    .byte >(level_actors+I*24)
 .endrepeat
 name_lo:
 .repeat ROOMS,I
@@ -1906,9 +2068,22 @@ hint_hi:
 .repeat ROOMS,I
     .byte >(level_hints+I*38)
 .endrepeat
-heading: .byte "BORROWED MOTION         ROOM 00/10",0
+chapter_starts: .byte 0,10,19,28,37,46,55
+chapter_lo: .byte <chapter_a,<chapter_b,<chapter_c,<chapter_d,<chapter_e,<chapter_f,<chapter_g
+chapter_hi: .byte >chapter_a,>chapter_b,>chapter_c,>chapter_d,>chapter_e,>chapter_f,>chapter_g
+chapter_a: .byte "1/7 THE FIRST LOANS             01-10",0
+chapter_b: .byte "2/7 THE DEEPER SHELVES          11-19",0
+chapter_c: .byte "3/7 THE QUIET MACHINES          20-28",0
+chapter_d: .byte "4/7 THE MIRROR VAULTS           29-37",0
+chapter_e: .byte "5/7 THE INNER ARCHIVE           38-46",0
+chapter_f: .byte "6/7 THE CONSTELLATIONS          47-55",0
+chapter_g: .byte "7/7 THE HEART OF MOTION         56-64",0
+heading: .byte "BORROWED MOTION         ROOM 00/64",0
 hud_template: .byte "POCKET    PEARL 0    REST 0/0         ",0
-swaps_label: .byte "SWAPS 000",0
+swaps_label: .byte "SWAPS 000  ",0
+swaps_limited: .byte "SWAPS 00/00",0
+exhausted_line: .byte "NO SWAPS LEFT. S UNDO / R RESTART.     ",0
+challenge_intro: .byte "SWAPS ARE LIMITED. UNDO RETURNS THEM. ",0
 lesson_choose_bell: .byte "A/D: CHOOSE THE BELL. SPACE: TAKE.    ",0
 lesson_choose_pearl: .byte "A/D: CHOOSE THE PEARL TO GUIDE IT.    ",0
 help_touch: .byte "OBJECTS PASS THROUGH EACH OTHER.      ",0
@@ -1923,10 +2098,11 @@ lesson_take: .byte "SPACE: TAKE THE BELL'S MOTION.        ",0
 lesson_give: .byte "SPACE: LEND THE MOTION TO THE PEARL.  ",0
 lesson_wind: .byte "TAP W: ONE STEP. HOLD: KEEP STEPPING. ",0
 lesson_brake: .byte "SPACE: TAKE MOTION. THE PEARL RESTS.  ",0
-title_controls: .byte "A/D: SELECT    SPACE/FIRE: EXCHANGE",0
-title_time: .byte "TAP W: ONE STEP  HOLD: KEEP STEPPING",0
+title_controls: .byte "A/D: ROOM   W/S: CHAPTER   JOYSTICK 2",0
+title_challenge: .byte "CHALLENGE: 00 SWAPS. Q: PRACTICE    ",0
+title_lessons: .byte "LESSONS: FREE SWAPS. Q: PRACTICE    ",0
+title_practice: .byte "PRACTICE: FREE SWAPS. Q: CHALLENGE   ",0
 title_start: .byte "RETURN / FIRE: BEGIN   H: HELP",0
-title_extra: .byte "JOYSTICK 2: L/R SELECT  UP STEP",0
 title_room: .byte "NO.",0
 help_a: .byte "YOU CAN BORROW THE WAY THINGS MOVE.   ",0
 help_b: .byte "GUIDE EVERY PEARL INTO A GOLDEN NEST. ",0
@@ -1942,11 +2118,14 @@ help_k: .byte "GLASS SLOWS. ARROW+2: TWO TILES/STEP. ",0
 help_l: .byte "S/DOWN UNDO   R RESTART   M SOUND     ",0
 help_m: .byte "RUN/STOP: TITLE. H: THIS GUIDE.       ",0
 help_n: .byte "PURPLE GHOST: SELECTED NEXT STEP.     ",0
+help_budget: .byte "ROOM 11+: FINISH WITHIN THE SWAP LIMIT.",0
+help_practice: .byte "PRACTICE: UNLIMITED SWAPS EVERYWHERE. ",0
+help_refund: .byte "UNDO REFUNDS. Q ON TITLE: PRACTICE.   ",0
 help_close: .byte "SPACE / FIRE / RETURN / H: BACK       ",0
 ending_a: .byte "THE ARCHIVE IS AWAKE.",0
-ending_b: .byte "TEN ROOMS. EVERY PEARL HOME AT LAST.",0
+ending_b: .byte "64 ROOMS. EVERY PEARL HOME AT LAST.",0
 ending_c: .byte "THE SMALL THINGS CAN DREAM AGAIN.",0
-ending_d: .byte "SPACE TO REVISIT ANY RESTORED ROOM",0
+ending_d: .byte "SPACE TO REVISIT THE ARCHIVE",0
 
 .include "assets.inc"
 .include "levels.inc"

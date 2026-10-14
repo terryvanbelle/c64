@@ -95,8 +95,8 @@ class RestartChecks:
                      "video standard matches requested model", actual)
 
     def fresh_room(self, number):
-        # Normal scene handlers leave help, ending or a room. Only the unlock
-        # ceiling is prepared, so every authored room can be selected directly.
+        # Normal scene handlers leave help, ending or a room. Every room is
+        # available from the title, including after a fresh launch.
         # A genuine restart consumes one neutral release tick before commands.
         self.v.tick()
         for _ in range(4):
@@ -105,8 +105,7 @@ class RestartChecks:
             self.v.tick(menu=8)
             self.v.tick()
         self.require(self.v.state()["scene"] == 0, "reached title for canonical load")
-        self.v.write("unlocked", 9)
-        for _ in range(12):
+        for _ in range(len(authored_levels()) + 1):
             current = self.v.state()["room_index"]
             if current == number:
                 break
