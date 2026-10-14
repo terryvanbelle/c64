@@ -10,7 +10,7 @@ DANCE_OBJECTS := $(DANCE_DIR)/engine.o $(DANCE_DIR)/music.o
 DANCE_PRG := $(BUILD_DIR)/nocturne.prg
 
 .PHONY: all dance disk demo run run-disk run-demo clean
-all: dance atlas duel tanks
+all: dance atlas duel tanks motion
 dance: $(DANCE_PRG)
 demo: $(BUILD_DIR)/demo.prg
 disk: $(BUILD_DIR)/nocturne.d64
@@ -144,6 +144,38 @@ run-tanks: $(BUILD_DIR)/ironveil.prg
 
 run-tanks-disk: $(BUILD_DIR)/ironveil.d64
 	$(PYTHON) tools/run_vice.py --vice $(VICE) $<
+
+.PHONY: motion motion-disk run-motion run-motion-disk
+motion: $(BUILD_DIR)/borrowed-motion.prg
+motion-disk: $(BUILD_DIR)/borrowed-motion.d64
+
+$(BUILD_DIR)/motion:
+	mkdir -p $@
+
+$(BUILD_DIR)/motion/assets.inc: tools/generate_motion_assets.py tools/generate_atlas_assets.py | $(BUILD_DIR)/motion
+	$(PYTHON) $<
+
+$(BUILD_DIR)/motion/levels.inc: tools/generate_motion_levels.py | $(BUILD_DIR)/motion
+	$(PYTHON) $<
+
+$(BUILD_DIR)/motion/%.o: src/motion/%.s $(BUILD_DIR)/motion/assets.inc $(BUILD_DIR)/motion/levels.inc
+	$(CA65) -g -I $(BUILD_DIR)/motion -l $(BUILD_DIR)/motion/$*.lst -o $@ $<
+
+MOTION_OBJECTS := $(addprefix $(BUILD_DIR)/motion/,engine.o input.o sound.o)
+$(BUILD_DIR)/motion/borrowed-motion.bin: $(MOTION_OBJECTS) motion.cfg
+	$(LD65) -C motion.cfg -m $(BUILD_DIR)/motion/borrowed-motion.map -Ln $(BUILD_DIR)/motion/borrowed-motion.lbl --dbgfile $(BUILD_DIR)/motion/borrowed-motion.dbg -o $@ $(MOTION_OBJECTS)
+
+$(BUILD_DIR)/borrowed-motion.prg: $(BUILD_DIR)/motion/borrowed-motion.bin tools/make_prg.py
+	$(PYTHON) tools/make_prg.py $< $@
+
+$(BUILD_DIR)/borrowed-motion.d64: $(BUILD_DIR)/borrowed-motion.prg
+	$(C1541) -format 'BORROWED MOTION,05' d64 $@ -write $< borrowed-motion
+
+run-motion: $(BUILD_DIR)/borrowed-motion.prg
+	$(PYTHON) tools/run_vice.py --vice $(VICE) --monitor-port 6560 $<
+
+run-motion-disk: $(BUILD_DIR)/borrowed-motion.d64
+	$(PYTHON) tools/run_vice.py --vice $(VICE) --monitor-port 6560 $<
 
 clean:
 	rm -rf $(BUILD_DIR)

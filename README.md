@@ -8,6 +8,40 @@
 - [C64 tips and tricks](TIPS_AND_TRICKS.md): hardware behavior, implementation
   techniques, tooling, and distribution guidance.
 
+## Borrowed Motion
+
+An original single-player puzzle game about treating **movement as an object**.
+Borrow the motion of brass bells, lend it to luminous pearls, and recover it
+when they reach their nests. Ten authored rooms introduce reflections, mirrors,
+different speeds, and exchanges made halfway through a journey. You control
+when the world advances and have unlimited time to think.
+
+![Borrowed Motion opening screen in VICE](docs/borrowed-motion-title.png)
+
+**A/D** selects an artifact; **Space** exchanges its motion with your spool.
+**Tap W** for one beat or **hold W** to keep winding. **S** undoes up to 32
+exchanges or beats; **R** restarts, **H** opens help, and **M** toggles sound.
+A pearl completes its journey only when it is still on a nest. A full spool
+swaps motions, so it must be emptied before it can brake another pearl.
+
+A joystick in **port 2** uses left/right to select, fire to exchange, up to
+wind, and down to undo. Press **Return or fire** to begin. Restored rooms unlock
+for replay during the current session.
+
+![Borrowed Motion rendered by VICE](docs/borrowed-motion.png)
+
+Download the [Borrowed Motion PRG](dist/borrowed-motion.prg) or
+[1541 disk image](dist/borrowed-motion.d64), or build and run with:
+
+```sh
+make motion
+make run-motion
+make motion-disk
+make run-motion-disk
+```
+
+See [Borrowed Motion controls, rules, and hardware notes](docs/BORROWED_MOTION.md).
+
 ## Ironveil
 
 A deliberate split-screen tank duel across an asymmetric procedural battlefield.
@@ -156,7 +190,8 @@ make all
 make run
 ```
 
-`make all` builds Ironveil, Bannerfall, Atlas, and Nocturne; `make run` launches Nocturne.
+`make all` builds Borrowed Motion, Ironveil, Bannerfall, Atlas, and Nocturne;
+`make run` launches Nocturne.
 The Nocturne output is `build/nocturne.prg`. The build regenerates the original graphics
 using Python's standard library; it needs no downloaded art or Python packages.
 On macOS the launch helper supplies the native app context needed by GTK VICE.
