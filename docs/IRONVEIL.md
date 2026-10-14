@@ -352,6 +352,30 @@ Run it with the existing cc65 installation:
 python3 tools/verify_tank_input.py
 ```
 
+The distributed PRG also passed **57 live VICE control checks per region**:
+PAL/6581, common NTSC/8580, and early NTSC/6581 (**171 assertions total**).
+Each run began with normal autostart and a byte-for-byte comparison of the
+loaded program with the distributed PRG. Both players readied by releasing
+their fire controls, aimed while stationary, fired once per release, paused,
+released fire while paused, resumed movement, and switched between keyboard
+and joystick input. The check returned each instance to keyboard setup.
+The D64's extracted program also matches this tested PRG byte for byte.
+
+The live check injects simulated keyboard scan results immediately after the
+actual CIA scan and simulated joystick samples at the shared decoder's entry.
+The compiled menu, movement, turret, and firing code execute normally, with
+no program-counter override, actor placement, or game-state jump. These are
+emulator checks; physical keyboard/joystick contacts and host rollover remain
+unverified. Run the check against a fresh disposable instance:
+
+```sh
+python3 tools/run_vice.py --model pal --sid 6581 --monitor-port 6582 dist/ironveil.prg
+python3 tools/verify_tank_controls_vice.py --port 6582 --model pal
+```
+
+Substitute `ntsc` with SID `8580`, or `oldntsc` with SID `6581`, to repeat the
+other regional configurations. Reports are written under `build/tanks/`.
+
 The earlier release's broader verification is recorded below; its independent
 turret-key input counts and timing measurements describe that earlier version.
 
