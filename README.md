@@ -1,5 +1,13 @@
 # C64 experiments
 
+## Development references
+
+- [Game design principles](GAME_DESIGN_PRINCIPLES.md): researched guidance on
+  controls, decisions, balance, AI, maps, presentation, accessibility, and
+  playtesting, with practical C64 examples and review checklists.
+- [C64 tips and tricks](TIPS_AND_TRICKS.md): hardware behavior, implementation
+  techniques, tooling, and distribution guidance.
+
 ## Ironveil
 
 A deliberate split-screen tank duel across an asymmetric procedural battlefield.
