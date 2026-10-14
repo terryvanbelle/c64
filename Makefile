@@ -10,7 +10,7 @@ DANCE_OBJECTS := $(DANCE_DIR)/engine.o $(DANCE_DIR)/music.o
 DANCE_PRG := $(BUILD_DIR)/nocturne.prg
 
 .PHONY: all dance disk demo run run-disk run-demo clean
-all: dance atlas duel tanks motion
+all: dance atlas duel tanks motion listening
 dance: $(DANCE_PRG)
 demo: $(BUILD_DIR)/demo.prg
 disk: $(BUILD_DIR)/nocturne.d64
@@ -176,6 +176,37 @@ run-motion: $(BUILD_DIR)/borrowed-motion.prg
 
 run-motion-disk: $(BUILD_DIR)/borrowed-motion.d64
 	$(PYTHON) tools/run_vice.py --vice $(VICE) --monitor-port 6560 $<
+
+.PHONY: listening listening-disk run-listening run-listening-disk
+listening: $(BUILD_DIR)/the-shape-of-listening.prg
+listening-disk: $(BUILD_DIR)/the-shape-of-listening.d64
+
+$(BUILD_DIR)/listening:
+	mkdir -p $@
+
+$(BUILD_DIR)/listening/score.inc: tools/compose_listening.py | $(BUILD_DIR)/listening
+	$(PYTHON) $<
+
+$(BUILD_DIR)/listening/art.inc: tools/generate_listening_art.py | $(BUILD_DIR)/listening
+	$(PYTHON) $<
+
+$(BUILD_DIR)/listening/%.o: src/listening/%.s $(BUILD_DIR)/listening/score.inc $(BUILD_DIR)/listening/art.inc
+	$(CA65) -g -I $(BUILD_DIR)/listening -l $(BUILD_DIR)/listening/$*.lst -o $@ $<
+
+$(BUILD_DIR)/listening/listening.bin: $(BUILD_DIR)/listening/engine.o $(BUILD_DIR)/listening/visual.o listening.cfg
+	$(LD65) -C listening.cfg -m $(BUILD_DIR)/listening/listening.map -Ln $(BUILD_DIR)/listening/listening.lbl --dbgfile $(BUILD_DIR)/listening/listening.dbg -o $@ $(filter %.o,$^)
+
+$(BUILD_DIR)/the-shape-of-listening.prg: $(BUILD_DIR)/listening/listening.bin tools/make_prg.py
+	$(PYTHON) tools/make_prg.py $< $@
+
+$(BUILD_DIR)/the-shape-of-listening.d64: $(BUILD_DIR)/the-shape-of-listening.prg
+	$(C1541) -format 'SHAPE LISTENING,06' d64 $@ -write $< listening
+
+run-listening: $(BUILD_DIR)/the-shape-of-listening.prg
+	$(PYTHON) tools/run_vice.py --vice $(VICE) --monitor-port 6590 $<
+
+run-listening-disk: $(BUILD_DIR)/the-shape-of-listening.d64
+	$(PYTHON) tools/run_vice.py --vice $(VICE) --monitor-port 6590 $<
 
 clean:
 	rm -rf $(BUILD_DIR)

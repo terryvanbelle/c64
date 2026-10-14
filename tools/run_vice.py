@@ -20,6 +20,10 @@ def main():
     parser.add_argument("--model", choices=("pal", "ntsc", "oldntsc"), default="pal")
     parser.add_argument("--sid", choices=("6581", "8580"), default="6581")
     parser.add_argument("--monitor-port", type=int)
+    parser.add_argument("--record-wav", type=Path,
+                        help="Record actual SID output to WAV while playing")
+    parser.add_argument("--limit-seconds", type=float,
+                        help="Quit after this much emulated time, including startup")
     args = parser.parse_args()
     executable = shutil.which(args.vice)
     if not executable:
@@ -31,6 +35,17 @@ def main():
     command = [executable, "-default", "-model", models[args.model],
                "-sidmodel", "0" if args.sid == "6581" else "1",
                "-autostartprgmode", "1", "-autostart", str(program)]
+    if args.record_wav:
+        recording = args.record_wav.resolve()
+        recording.parent.mkdir(parents=True, exist_ok=True)
+        command += ["-sound", "-soundrecdev", "wav",
+                    "-soundrecarg", str(recording), "-soundrate", "44100",
+                    "-soundoutput", "1", "-residsamp", "2", "+warp", "+autostart-warp"]
+    if args.limit_seconds is not None:
+        if not 0 < args.limit_seconds <= 3600:
+            parser.error("limit-seconds must be greater than 0 and at most 3600")
+        clock = 985248 if args.model == "pal" else 1022730
+        command += ["-limitcycles", str(round(args.limit_seconds * clock))]
     if program.suffix.lower() == ".d64":
         command += ["-drive8type", "1541", "-drive8truedrive", "+trapdevice8"]
     if args.monitor_port:

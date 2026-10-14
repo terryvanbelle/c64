@@ -8,6 +8,29 @@
 - [C64 tips and tricks](TIPS_AND_TRICKS.md): hardware behavior, implementation
   techniques, tooling, and distribution guidance.
 
+## The Shape of Listening
+
+An original **three-minute piece for one SID chip**. Two oscillators make a
+single shifting metallic voice; a quieter, rounded tone answers it. An uneven
+13-unit phrase becomes more restless, opens into a sparse passage, and returns
+in a softened form. The music has a composed ending. Three luminous contours
+accompany it on screen.
+
+![The Shape of Listening in VICE](docs/the-shape-of-listening.png)
+
+It starts playing automatically. **Space** pauses/resumes; **R** replays.
+Download the [PRG](dist/the-shape-of-listening.prg) or
+[1541 disk image](dist/the-shape-of-listening.d64).
+
+```sh
+make listening
+make run-listening
+make listening-disk
+make run-listening-disk
+```
+
+See [composition, sound design, and hardware notes](docs/THE_SHAPE_OF_LISTENING.md).
+
 ## Borrowed Motion
 
 An original single-player puzzle game about treating **movement as an object**.
