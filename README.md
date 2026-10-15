@@ -8,6 +8,28 @@
 - [C64 tips and tricks](TIPS_AND_TRICKS.md): hardware behavior, implementation
   techniques, tooling, and distribution guidance.
 
+## Tessellated Tide
+
+An original **three-minute SID composition with intertwined harmony and rhythm**.
+A pitched bass marks four beats while a warm pulse voice plays three accents
+across them, and a triangle voice holds and answers the harmony. Six sections
+develop the pattern, open a quieter space, and return with more activity before
+settling. Its tuning includes seventh- and eleventh-partial relationships;
+three woven ribbons follow the voices on screen.
+
+![Tessellated Tide running in VICE](docs/tessellated-tide.png)
+
+Playback starts automatically. **Space** pauses/resumes; **R** replays.
+Download the [PRG](dist/tessellated-tide.prg) or
+[1541 disk image](dist/tessellated-tide.d64).
+
+```sh
+make tide tide-disk
+make run-tide
+```
+
+See [composition, sound design, and hardware notes](docs/TESSELLATED_TIDE.md).
+
 ## The Shape of Listening
 
 An original **three-minute piece for one SID chip**. Two oscillators make a

@@ -208,5 +208,36 @@ run-listening: $(BUILD_DIR)/the-shape-of-listening.prg
 run-listening-disk: $(BUILD_DIR)/the-shape-of-listening.d64
 	$(PYTHON) tools/run_vice.py --vice $(VICE) --monitor-port 6590 $<
 
+.PHONY: tide tide-disk run-tide run-tide-disk
+tide: $(BUILD_DIR)/tessellated-tide.prg
+tide-disk: $(BUILD_DIR)/tessellated-tide.d64
+
+$(BUILD_DIR)/tide:
+	mkdir -p $@
+
+$(BUILD_DIR)/tide/score.inc: tools/compose_tide.py | $(BUILD_DIR)/tide
+	$(PYTHON) $<
+
+$(BUILD_DIR)/tide/art.inc: tools/generate_tide_art.py | $(BUILD_DIR)/tide
+	$(PYTHON) $<
+
+$(BUILD_DIR)/tide/%.o: src/tide/%.s $(BUILD_DIR)/tide/score.inc $(BUILD_DIR)/tide/art.inc
+	$(CA65) -g -I $(BUILD_DIR)/tide -l $(BUILD_DIR)/tide/$*.lst -o $@ $<
+
+$(BUILD_DIR)/tide/tide.bin: $(BUILD_DIR)/tide/engine.o $(BUILD_DIR)/tide/visual.o tide.cfg
+	$(LD65) -C tide.cfg -m $(BUILD_DIR)/tide/tide.map -Ln $(BUILD_DIR)/tide/tide.lbl --dbgfile $(BUILD_DIR)/tide/tide.dbg -o $@ $(filter %.o,$^)
+
+$(BUILD_DIR)/tessellated-tide.prg: $(BUILD_DIR)/tide/tide.bin tools/make_prg.py
+	$(PYTHON) tools/make_prg.py $< $@
+
+$(BUILD_DIR)/tessellated-tide.d64: $(BUILD_DIR)/tessellated-tide.prg
+	$(C1541) -format 'TESSELLATED TIDE,07' d64 $@ -write $< tessellated-tide
+
+run-tide: $(BUILD_DIR)/tessellated-tide.prg
+	$(PYTHON) tools/run_vice.py --vice $(VICE) --monitor-port 6600 $<
+
+run-tide-disk: $(BUILD_DIR)/tessellated-tide.d64
+	$(PYTHON) tools/run_vice.py --vice $(VICE) --monitor-port 6600 $<
+
 clean:
 	rm -rf $(BUILD_DIR)
