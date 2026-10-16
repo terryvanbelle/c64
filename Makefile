@@ -10,7 +10,7 @@ DANCE_OBJECTS := $(DANCE_DIR)/engine.o $(DANCE_DIR)/music.o
 DANCE_PRG := $(BUILD_DIR)/nocturne.prg
 
 .PHONY: all dance disk demo run run-disk run-demo clean
-all: dance atlas duel tanks motion listening
+all: dance atlas duel tanks motion listening tide weather
 dance: $(DANCE_PRG)
 demo: $(BUILD_DIR)/demo.prg
 disk: $(BUILD_DIR)/nocturne.d64
@@ -238,6 +238,40 @@ run-tide: $(BUILD_DIR)/tessellated-tide.prg
 
 run-tide-disk: $(BUILD_DIR)/tessellated-tide.d64
 	$(PYTHON) tools/run_vice.py --vice $(VICE) --monitor-port 6600 $<
+
+.PHONY: weather weather-disk run-weather run-weather-disk
+weather: $(BUILD_DIR)/a-mouthful-of-weather.prg
+weather-disk: $(BUILD_DIR)/a-mouthful-of-weather.d64
+
+$(BUILD_DIR)/weather:
+	mkdir -p $@
+
+$(BUILD_DIR)/weather/voice.inc: tools/synthesize_weather.py | $(BUILD_DIR)/weather
+	$(PYTHON) $<
+
+$(BUILD_DIR)/weather/score.inc: tools/compose_weather.py $(BUILD_DIR)/weather/voice.inc
+	$(PYTHON) $<
+
+$(BUILD_DIR)/weather/art.inc: tools/generate_weather_art.py | $(BUILD_DIR)/weather
+	$(PYTHON) $<
+
+$(BUILD_DIR)/weather/%.o: src/weather/%.s $(BUILD_DIR)/weather/voice.inc $(BUILD_DIR)/weather/score.inc $(BUILD_DIR)/weather/art.inc
+	$(CA65) -g -I $(BUILD_DIR)/weather -l $(BUILD_DIR)/weather/$*.lst -o $@ $<
+
+$(BUILD_DIR)/weather/weather.bin: $(BUILD_DIR)/weather/engine.o $(BUILD_DIR)/weather/visual.o weather.cfg
+	$(LD65) -C weather.cfg -m $(BUILD_DIR)/weather/weather.map -Ln $(BUILD_DIR)/weather/weather.lbl --dbgfile $(BUILD_DIR)/weather/weather.dbg -o $@ $(filter %.o,$^)
+
+$(BUILD_DIR)/a-mouthful-of-weather.prg: $(BUILD_DIR)/weather/weather.bin tools/make_prg.py
+	$(PYTHON) tools/make_prg.py $< $@
+
+$(BUILD_DIR)/a-mouthful-of-weather.d64: $(BUILD_DIR)/a-mouthful-of-weather.prg
+	$(C1541) -format 'MOUTHFUL WEATHER,08' d64 $@ -write $< weather
+
+run-weather: $(BUILD_DIR)/a-mouthful-of-weather.prg
+	$(PYTHON) tools/run_vice.py --vice $(VICE) --monitor-port 6610 $<
+
+run-weather-disk: $(BUILD_DIR)/a-mouthful-of-weather.d64
+	$(PYTHON) tools/run_vice.py --vice $(VICE) --monitor-port 6610 $<
 
 clean:
 	rm -rf $(BUILD_DIR)

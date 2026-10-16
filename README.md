@@ -8,6 +8,27 @@
 - [C64 tips and tricks](TIPS_AND_TRICKS.md): hardware behavior, implementation
   techniques, tooling, and distribution guidance.
 
+## A Mouthful of Weather
+
+An original **73-second piece of speech music**: an invented voice thinks aloud,
+asks questions, argues with its own rhythm, and finds a softer answer. Moving
+vowel resonances, breath, nasal sounds, and consonants form a small vocabulary
+of nonsense syllables. A copper profile and blue breath marks accompany it.
+
+![A Mouthful of Weather](docs/a-mouthful-of-weather.png)
+
+**Space** pauses/resumes; **R** replays. Download the
+[PRG](dist/a-mouthful-of-weather.prg) or [1541 disk image](dist/a-mouthful-of-weather.d64).
+The original voice is synthesized at build time and played through the SID's
+volume DAC; all sound fragments fit in the C64's memory.
+
+```sh
+make weather weather-disk
+make run-weather
+```
+
+See [composition, synthesis, and hardware notes](docs/A_MOUTHFUL_OF_WEATHER.md).
+
 ## Tessellated Tide
 
 An original **three-minute SID composition with intertwined harmony and rhythm**.
